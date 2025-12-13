@@ -145,6 +145,7 @@ export default async function proxy(req: NextRequest) {
     // Allow localhost for testing (remove in final production)
     const allowedOrigins = [
       "'self'",
+      "https://*.thekavin.com",
       "https://*.deltalytix.app", // Main domain
       "https://*.beta.deltalytix.app", // Beta subdomain
       "http://localhost:*", // For local testing
