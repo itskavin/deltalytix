@@ -38,8 +38,8 @@ export async function getAiSettingsAction(): Promise<{
   ollamaHostUrl: string
   ollamaModel: string
 }> {
-  const authUserId = await getUserId()
   try {
+    const authUserId = await getUserId()
     const rows = await prisma.$queryRaw<AiSettingsRow[]>`
       SELECT
         "preferredProvider",
@@ -76,8 +76,9 @@ export async function getAiSettingsAction(): Promise<{
 }
 
 export async function upsertAiSettingsAction(input: z.input<typeof upsertSchema>) {
-  const authUserId = await getUserId()
-  const data = upsertSchema.parse(input)
+  try {
+    const authUserId = await getUserId()
+    const data = upsertSchema.parse(input)
 
   const ollamaHostUrl = data.ollamaHostUrl ? normalizeHostUrl(data.ollamaHostUrl) : undefined
   const geminiModel = data.geminiModel ?? 'gemini-flash-latest'
@@ -151,20 +152,21 @@ export async function upsertAiSettingsAction(input: z.input<typeof upsertSchema>
         "ollamaModel" = EXCLUDED."ollamaModel",
         "updatedAt" = EXCLUDED."updatedAt"
     `
+    
+    revalidatePath('/dashboard/ai-settings')
+    return { success: true }
   } catch (error) {
     console.error('Error saving AI settings:', error)
     throw new Error('Failed to save AI settings. Ensure the AiSettings migration has been applied.')
   }
-
-  revalidatePath('/dashboard/ai-settings')
-  return { success: true }
 }
 
 export async function getOllamaModelsAction(ollamaHostUrl: string): Promise<{ models: string[] }> {
-  const authUserId = await getUserId()
-  void authUserId
+  try {
+    const authUserId = await getUserId()
+    void authUserId
 
-  const base = normalizeHostUrl(ollamaHostUrl)
+    const base = normalizeHostUrl(ollamaHostUrl)
   if (!base) return { models: [] }
 
   const controller = new AbortController()
@@ -189,7 +191,8 @@ export async function getOllamaModelsAction(ollamaHostUrl: string): Promise<{ mo
       .sort((a, b) => a.localeCompare(b))
 
     return { models }
-  } catch {
+  } catch (error) {
+    console.error('Error fetching Ollama models:', error)
     return { models: [] }
   } finally {
     clearTimeout(timeout)

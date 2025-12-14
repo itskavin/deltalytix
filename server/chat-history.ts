@@ -10,14 +10,20 @@ function coerceMessages(value: unknown): UIMessage[] {
 }
 
 export async function getChatHistoryAction(): Promise<UIMessage[]> {
-  const authUserId = await getUserId()
+  try {
+    const authUserId = await getUserId()
 
-  const row = await prisma.chatHistory.findUnique({
-    where: { userId: authUserId },
-    select: { messages: true },
-  })
+    const row = await prisma.chatHistory.findUnique({
+      where: { userId: authUserId },
+      select: { messages: true },
+    })
 
-  return coerceMessages(row?.messages)
+    return coerceMessages(row?.messages)
+  } catch (error) {
+    console.error('Error loading chat history:', error)
+    // Return empty array instead of throwing to prevent UI crashes
+    return []
+  }
 }
 
 export async function saveChatHistoryAction(messages: UIMessage[]): Promise<{ success: true } | { success: false; error: string }> {
