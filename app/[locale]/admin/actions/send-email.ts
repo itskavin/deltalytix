@@ -87,7 +87,7 @@ export async function getDefaultTemplateProps(template: EmailTemplate): Promise<
         youtubeId: "ZBrIZpCh_7Q",
         introMessage: "Sample intro message",
         features: ["Feature 1", "Feature 2"],
-        unsubscribeUrl: "https://deltalytix.app/api/email/unsubscribe?email=user%40example.com",
+        unsubscribeUrl: "https://trades.thekavin.com/api/email/unsubscribe?email=user%40example.com",
       }
     case "renewal-notice":
       return {
@@ -99,7 +99,7 @@ export async function getDefaultTemplateProps(template: EmailTemplate): Promise<
         daysUntilRenewal: 7,
         paymentFrequency: "monthly",
         language: "en",
-        unsubscribeUrl: "https://deltalytix.app/api/email/unsubscribe?email=user%40example.com",
+        unsubscribeUrl: "https://trades.thekavin.com/api/email/unsubscribe?email=user%40example.com",
       }
     case "team-invitation":
       return {
@@ -107,7 +107,7 @@ export async function getDefaultTemplateProps(template: EmailTemplate): Promise<
         teamName: "Sample Team",
         inviterName: "John Doe",
         inviterEmail: "john@example.com",
-        joinUrl: "https://deltalytix.app",
+        joinUrl: "https://trades.thekavin.com",
         language: "en",
       }
     case "missing-data":
@@ -320,7 +320,7 @@ export async function sendEmailsToUsers(
     for (const batch of batches) {
       try {
         const emailBatch = batch.map((user) => {
-          const unsubscribeUrl = `https://deltalytix.app/api/email/unsubscribe?email=${encodeURIComponent(user.email)}`
+          const unsubscribeUrl = `https://trades.thekavin.com/api/email/unsubscribe?email=${encodeURIComponent(user.email)}`
           const mergedProps: TemplateProps = {
             ...customProps,
             firstName: user.firstName,
@@ -334,7 +334,7 @@ export async function sendEmailsToUsers(
           const emailSubject = subject || getDefaultSubject(template, user.language)
 
           return {
-            from: "Deltalytix <updates@eu.updates.deltalytix.app>",
+            from: process.env.RESEND_FROM_UPDATES || process.env.RESEND_FROM || "Deltalytix <updates@deltalytix.app>",
             to: [user.email],
             subject: emailSubject,
             reply_to: "hugo.demenez@deltalytix.app",

@@ -1,15 +1,30 @@
 'use server'
 
 import { createClient, User } from '@supabase/supabase-js'
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+
+function getSupabaseAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY
+
+  if (!url) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is required.')
   }
-})
+  if (!serviceKey) {
+    // Throwing here avoids the confusing "supabaseKey is required" coming from module evaluation.
+    throw new Error('SUPABASE_SERVICE_KEY is required (server env).')
+  }
+
+  return createClient(url, serviceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
 import { prisma } from '@/lib/prisma'
 
 export async function getUserStats() {
+  const supabase = getSupabaseAdminClient()
   let allUsers: any[] = []
   let page = 1
   const perPage = 1000
@@ -90,26 +105,22 @@ export async function getTradeStats() {
 } 
 
 export async function getFreeUsers(){
-  console.log('Starting getFreeUsers function')
+  const supabase = getSupabaseAdminClient()
 
   // Get all trades with their user IDs
-  console.log('Fetching trades...')
   const trades = await prisma.trade.findMany({
   })
-  console.log(`Found ${trades.length} total trades`)
 
   // Get all users who have subscriptions
   console.log('Fetching subscriptions...')
   const subscribedUsers = await prisma.subscription.findMany({
     select: { userId: true }
   })
-  console.log(`Found ${subscribedUsers.length} subscribed users`)
   const subscribedUserIds = new Set(subscribedUsers.map(sub => sub.userId))
 
   // Get unique user IDs who have trades but no subscription
   const freeUserIds = [...new Set(trades.map(trade => trade.userId))]
     .filter(userId => !subscribedUserIds.has(userId))
-  console.log(`Found ${freeUserIds.length} free users with trades`)
 
   // Get user emails from Supabase auth
   let allUsers: User[] = []
@@ -117,9 +128,7 @@ export async function getFreeUsers(){
   const perPage = 1000
   let hasMore = true
 
-  console.log('Starting Supabase user fetch...')
   while (hasMore) {
-    console.log(`Fetching page ${page} of users...`)
     const { data, error } = await supabase.auth.admin.listUsers({
       page,
       perPage
@@ -131,36 +140,30 @@ export async function getFreeUsers(){
     }
 
     if (data.users.length === 0) {
-      console.log('No more users to fetch')
       hasMore = false
     } else {
-      console.log(`Retrieved ${data.users.length} users on page ${page}`)
       allUsers = [...allUsers, ...data.users]
       page++
     }
   }
-  console.log(`Total users fetched from Supabase: ${allUsers.length}`)
 
   // Map free users to their emails and trades
   const mappedUsers = freeUserIds.map(userId => {
     const user = allUsers.find(u => u.id === userId)
     const userTrades = trades.filter(trade => trade.userId === userId)
-    console.log(`Mapping user ${userId}: Found email: ${!!user?.email}, Trades: ${userTrades.length}`)
     return {
       email: user?.email || '',
       trades: userTrades
     }
   }).filter(user => user.email !== '')
 
-  console.log(`Returning ${mappedUsers.length} mapped free users`)
   return mappedUsers
 }
 
 export async function getUserEquityData(page: number = 1, limit: number = 10) {
-  console.log('Starting getUserEquityData function')
+  const supabase = getSupabaseAdminClient()
 
   // First, get all unique user IDs that have trades, with pagination
-  console.log('Fetching users with trades from database...')
   const usersWithTrades = await prisma.trade.groupBy({
     by: ['userId'],
     _count: {
@@ -172,8 +175,6 @@ export async function getUserEquityData(page: number = 1, limit: number = 10) {
     skip: (page - 1) * limit,
     take: limit
   })
-
-  console.log(`Found ${usersWithTrades.length} users with trades for page ${page}`)
 
   if (usersWithTrades.length === 0) {
     return {
@@ -187,7 +188,6 @@ export async function getUserEquityData(page: number = 1, limit: number = 10) {
   const userIds = usersWithTrades.map(user => user.userId)
 
   // Get user data from Supabase for these specific users
-  console.log('Fetching user data from Supabase...')
   const userPromises = userIds.map(userId => 
     supabase.auth.admin.getUserById(userId)
   )
@@ -197,10 +197,7 @@ export async function getUserEquityData(page: number = 1, limit: number = 10) {
     .map(result => result.data?.user)
     .filter(user => user !== null) as User[]
 
-  console.log(`Retrieved ${users.length} users from Supabase`)
-
   // Get all trades for these users
-  console.log('Fetching trades for users...')
   const trades = await prisma.trade.findMany({
     where: {
       userId: {
@@ -226,7 +223,6 @@ export async function getUserEquityData(page: number = 1, limit: number = 10) {
     }
   })
 
-  console.log(`Found ${trades.length} trades for users`)
 
   // Group trades by user ID
   const userTradesMap = trades.reduce((acc, trade) => {
@@ -297,7 +293,6 @@ export async function getUserEquityData(page: number = 1, limit: number = 10) {
     }
   })
 
-  console.log(`Returning ${userEquityData.length} users with equity data for page ${page}`)
   return {
     users: userEquityData,
     totalUsers: totalUsersWithTrades.length,
@@ -306,7 +301,7 @@ export async function getUserEquityData(page: number = 1, limit: number = 10) {
 }
 
 export async function getIndividualUserEquityData(userId: string) {
-  console.log(`Starting getIndividualUserEquityData for user ${userId}`)
+  const supabase = getSupabaseAdminClient()
 
   // Get user from Supabase auth
   const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId)
@@ -389,7 +384,7 @@ export async function getIndividualUserEquityData(userId: string) {
 }
 
 export async function getTeamEquityData(teamId: string, page: number = 1, limit: number = 100) {
-  console.log(`Starting getTeamEquityData for team ${teamId}`)
+  const supabase = getSupabaseAdminClient()
 
   // First, get the team to find trader IDs
   const team = await prisma.team.findUnique({
@@ -406,8 +401,6 @@ export async function getTeamEquityData(teamId: string, page: number = 1, limit:
     }
   }
 
-  console.log(`Found team with ${team.traderIds.length} traders`)
-
   if (team.traderIds.length === 0) {
     return {
       users: [],
@@ -421,10 +414,7 @@ export async function getTeamEquityData(teamId: string, page: number = 1, limit:
   const endIndex = startIndex + limit
   const paginatedTraderIds = team.traderIds.slice(startIndex, endIndex)
 
-  console.log(`Processing ${paginatedTraderIds.length} traders for page ${page}`)
-
   // Get user data from Supabase for these specific traders
-  console.log('Fetching user data from Supabase...')
   const userPromises = paginatedTraderIds.map(userId => 
     supabase.auth.admin.getUserById(userId)
   )
@@ -434,10 +424,7 @@ export async function getTeamEquityData(teamId: string, page: number = 1, limit:
     .map(result => result.data?.user)
     .filter(user => user !== null) as User[]
 
-  console.log(`Retrieved ${users.length} users from Supabase`)
-
   // Get all trades for these users
-  console.log('Fetching trades for users...')
   const trades = await prisma.trade.findMany({
     where: {
       userId: {
@@ -463,7 +450,6 @@ export async function getTeamEquityData(teamId: string, page: number = 1, limit:
     }
   })
 
-  console.log(`Found ${trades.length} trades for users`)
 
   // Group trades by user ID
   const userTradesMap = trades.reduce((acc, trade) => {
@@ -526,7 +512,6 @@ export async function getTeamEquityData(teamId: string, page: number = 1, limit:
     }
   }).filter(user => user.email !== 'Unknown' && user.email !== '')
 
-  console.log(`Returning ${userEquityData.length} users with equity data for team ${teamId}, page ${page}`)
   return {
     users: userEquityData,
     totalUsers: team.traderIds.length,
@@ -552,7 +537,7 @@ function calculateMaxDrawdown(equityCurve: { cumulativePnL: number }[]): number 
 }
 
 export async function exportTeamTradesAction(teamId: string): Promise<string> {
-  console.log(`Starting exportTeamTradesAction for team ${teamId}`)
+  const supabase = getSupabaseAdminClient()
 
   // Get the team to find trader IDs
   const team = await prisma.team.findUnique({
@@ -564,14 +549,11 @@ export async function exportTeamTradesAction(teamId: string): Promise<string> {
     throw new Error(`Team ${teamId} not found`)
   }
 
-  console.log(`Found team with ${team.traderIds.length} traders`)
-
   if (team.traderIds.length === 0) {
     throw new Error('No traders found in this team')
   }
 
   // Get user data from Supabase for all traders
-  console.log('Fetching user data from Supabase...')
   const userPromises = team.traderIds.map(userId => 
     supabase.auth.admin.getUserById(userId)
   )
@@ -587,10 +569,7 @@ export async function exportTeamTradesAction(teamId: string): Promise<string> {
     return acc
   }, {} as Record<string, string>)
 
-  console.log(`Retrieved ${users.length} users from Supabase`)
-
   // Get all trades for these users
-  console.log('Fetching trades for all users...')
   const trades = await prisma.trade.findMany({
     where: {
       userId: {
@@ -620,7 +599,6 @@ export async function exportTeamTradesAction(teamId: string): Promise<string> {
     ]
   })
 
-  console.log(`Found ${trades.length} trades for export`)
 
   // Generate CSV content
   const csvHeaders = [
@@ -671,6 +649,5 @@ export async function exportTeamTradesAction(teamId: string): Promise<string> {
 
   const csv = [csvHeaders.join(','), ...csvRows].join('\n')
   
-  console.log(`Generated CSV with ${csvRows.length} rows`)
   return csv
 }

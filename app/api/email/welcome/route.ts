@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       }
     })
 
-    const unsubscribeUrl = `https://deltalytix.app/api/email/unsubscribe?email=${encodeURIComponent(record.email)}`
+    const unsubscribeUrl = `https://trades.thekavin.com/api/email/unsubscribe?email=${encodeURIComponent(record.email)}`
 
     // Check user language preference from database
     const user = await prisma.user.findUnique({

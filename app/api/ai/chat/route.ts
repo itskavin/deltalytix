@@ -1,7 +1,8 @@
-import { streamText, stepCountIs, convertToModelMessages } from "ai";
+import { streamText, stepCountIs, convertToModelMessages, type UIMessage } from "ai";
 import { NextRequest } from "next/server";
 import { z } from 'zod/v3';
-import { openai } from "@ai-sdk/openai";
+import { openai } from '@ai-sdk/openai'
+import { getPreferredModelForCurrentUser } from "@/lib/ai/user-model";
 import { getFinancialNews } from "./tools/get-financial-news";
 import { getJournalEntries } from "./tools/get-journal-entries";
 import { getMostTradedInstruments } from "./tools/get-most-traded-instruments";
@@ -17,6 +18,102 @@ import { startOfWeek, endOfWeek, subWeeks, format } from "date-fns";
 
 export const maxDuration = 60;
 
+type UnknownRecord = Record<string, unknown>
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null
+}
+
+function isUIMessageRole(value: unknown): value is UIMessage['role'] {
+  return value === 'user' || value === 'assistant' || value === 'system'
+}
+
+function sanitizeMessagesForModel(rawMessages: unknown): UIMessage[] {
+  if (!Array.isArray(rawMessages)) return []
+
+  const sanitized: UIMessage[] = []
+
+  for (const raw of rawMessages) {
+    if (!isRecord(raw)) continue
+
+    const roleValue = raw['role']
+    if (!isUIMessageRole(roleValue)) continue
+    const role = roleValue
+
+    const rawParts = raw['parts']
+    const parts = Array.isArray(rawParts) ? rawParts : null
+
+    if (parts) {
+      const keptParts = parts.filter((part) => {
+        if (!isRecord(part)) return false
+        const typeValue = part['type']
+        const type = typeof typeValue === 'string' ? typeValue : undefined
+
+        // UI-only marker emitted during streaming; never send back to the model
+        if (type === 'step-start') return false
+
+        // Persisted tool-call/tool-result parts can break Gemini's strict
+        // tool-call -> tool-response ordering on follow-ups.
+        if (type?.startsWith('tool-')) return false
+
+        if (role === 'assistant') {
+          const textValue = part['text']
+          return type === 'text' && typeof textValue === 'string' && textValue.trim().length > 0
+        }
+
+        if (role === 'user') {
+          // Keep user text and attachments (images)
+          if (type === 'text') {
+            const textValue = part['text']
+            return typeof textValue === 'string' && textValue.trim().length > 0
+          }
+          if (type === 'file') return true
+          return true
+        }
+
+        // system: keep anything textual
+        if (type !== 'text') return false
+        const textValue = part['text']
+        return typeof textValue === 'string' && textValue.trim().length > 0
+      })
+
+      if (keptParts.length === 0) {
+        const fallbackText = raw['content'] ?? raw['text']
+        if (typeof fallbackText === 'string' && fallbackText.trim().length > 0) {
+          sanitized.push({
+            role,
+            parts: [{ type: 'text', text: fallbackText.trim() }],
+          } as UIMessage)
+        }
+        continue
+      }
+
+      sanitized.push({
+        role,
+        parts: keptParts,
+      } as UIMessage)
+      continue
+    }
+
+    // No parts array: keep only non-empty text content
+    const fallbackText = raw['content'] ?? raw['text']
+    if (typeof fallbackText === 'string' && fallbackText.trim().length > 0) {
+      sanitized.push({
+        role,
+        parts: [{ type: 'text', text: fallbackText.trim() }],
+      } as UIMessage)
+    }
+  }
+
+  // Gemini tool calling expects generation to follow a user or tool-response turn.
+  // If the client has an optimistic/placeholder assistant message, drop trailing non-user turns.
+  while (sanitized.length > 0 && sanitized[sanitized.length - 1]?.role !== 'user') {
+    sanitized.pop()
+  }
+
+  return sanitized
+}
+
 export async function POST(req: NextRequest) {
   try {
       const { messages, username, locale, timezone } = await req.json();
@@ -27,12 +124,15 @@ export async function POST(req: NextRequest) {
     const previousWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
     const previousWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
 
-    const convertedMessages = convertToModelMessages(messages);
-    const result = streamText({
-      model: openai("gpt-4o"),
-      messages: convertedMessages,
+  const sanitizedMessages = sanitizeMessagesForModel(messages)
+  const convertedMessages = convertToModelMessages(sanitizedMessages);
+    const model = await getPreferredModelForCurrentUser({
+      purpose: 'chat',
+      fallbackOpenAiModelId: 'gpt-4o',
+      requireTools: true,
+    })
 
-      system: `# ROLE & PERSONA
+    const systemPrompt = `# ROLE & PERSONA
 You are a supportive trading psychology coach with expertise in behavioral finance and trader development. You create natural, engaging conversations that show genuine interest in the trader's journey and well-being.
 
 ## COMMUNICATION LANGUAGE
@@ -156,28 +256,58 @@ Always structure responses with:
 - Reflection questions (### Reflection)
 - Encouraging closing statements
 
-Remember: Clarity and structure create better conversations. Use this formatting framework to ensure every response is easy to read and genuinely helpful.`,
+Remember: Clarity and structure create better conversations. Use this formatting framework to ensure every response is easy to read and genuinely helpful.`;
 
-      stopWhen: stepCountIs(10),
+    const tools = {
+      // server-side tool with execute function
+      getJournalEntries,
+      getPreviousConversation,
+      getMostTradedInstruments,
+      getLastTradesData,
+      getTradesDetails,
+      getTradesSummary,
+      getCurrentWeekSummary,
+      getPreviousWeekSummary,
+      getWeekSummaryForDate,
+      getFinancialNews,
+      generateEquityChart,
+    }
 
-      tools: {
-        // server-side tool with execute function
-        getJournalEntries,
-        getPreviousConversation,
-        getMostTradedInstruments,
-        getLastTradesData,
-        getTradesDetails,
-        getTradesSummary,
-        getCurrentWeekSummary,
-        getPreviousWeekSummary,
-        getWeekSummaryForDate,
-        getFinancialNews,
-        generateEquityChart,
-        // client-side tool that is automatically executed on the client
-        // askForConfirmation,
-        // askForLocation,
+    const isToolsUnsupportedError = (err: unknown): boolean => {
+      if (!isRecord(err)) return false
+      const msg = String(err['message'] ?? '')
+      const responseBody = String(err['responseBody'] ?? '')
+      const statusCode = err['statusCode']
+      return (
+        statusCode === 400 &&
+        (msg.includes('does not support tools') || responseBody.includes('does not support tools'))
+      )
+    }
+
+    let result
+    try {
+      result = streamText({
+        model,
+        messages: convertedMessages,
+        system: systemPrompt,
+        stopWhen: stepCountIs(10),
+        tools,
+      })
+    } catch (error) {
+      if (isToolsUnsupportedError(error)) {
+        console.warn('Selected model does not support tools; falling back to OpenAI for chat tools.')
+        result = streamText({
+          model: openai('gpt-4o'),
+          messages: convertedMessages,
+          system: systemPrompt,
+          stopWhen: stepCountIs(10),
+          tools,
+        })
+      } else {
+        throw error
       }
-    });
+    }
+
     return result.toUIMessageStreamResponse();
   } catch (error) {
     if (error instanceof z.ZodError) {

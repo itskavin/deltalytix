@@ -14,7 +14,6 @@ import {
 import Link from 'next/link'
 import { getI18n } from "@/locales/server"
 import { getUserProfileAction } from "@/server/user-profile"
-import { TeamSubscriptionBadge } from './team-subscription-badge-client'
 import { LogoutButton } from './logout-button'
 
 
@@ -22,7 +21,6 @@ export async function AuthProfileButton() {
   const  t = await getI18n()
   const profileData = await getUserProfileAction()
   const user = profileData.supabaseUser
-  const subscription = profileData.subscription
 
   return (
     <DropdownMenu>
@@ -34,10 +32,6 @@ export async function AuthProfileButton() {
               {user?.email?.[0]}
             </AvatarFallback>
           </Avatar>
-          <TeamSubscriptionBadge 
-            subscription={subscription} 
-            className="absolute -bottom-1 -right-1 px-1 py-0 text-[10px] leading-3" 
-          />
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end">

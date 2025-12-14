@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useRef, useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom"
 import { Button } from "@/components/ui/button"
 import { RotateCcw, ChevronDown, MessageSquare, Loader2 } from "lucide-react"
@@ -18,13 +17,11 @@ import { ChatHeader } from "./header"
 import { EquityChartMessage } from "./equity-chart-message"
 import { useCurrentLocale } from "@/locales/client"
 import { useI18n } from "@/locales/client"
-import { loadChat, saveChat } from "./actions/chat"
 import { useUserStore } from "@/store/user-store"
 import { useChatStore } from "@/store/chat-store"
-import { format } from "date-fns"
 import { DotStream } from 'ldrs/react'
 import 'ldrs/react/DotStream.css'
-import { useMoodStore } from "@/store/mood-store"
+import { getChatHistoryAction, resetChatHistoryAction, saveChatHistoryAction } from "@/server/chat-history"
 
 // Types
 interface ChatWidgetProps {
@@ -104,12 +101,6 @@ const ResumeScrollButton = () => {
 }
 
 // Add new message type components
-const ThinkingMessage = () => (
-    <div className="flex items-center gap-2 text-muted-foreground text-sm py-2">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>Thinking...</span>
-    </div>
-)
 
 const FirstMessageLoading = () => {
     const t = useI18n()
@@ -127,7 +118,8 @@ const FirstMessageLoading = () => {
     )
 }
 
-const ToolCallMessage = ({ toolName, args, state, output }: { toolName: string; args: any; state: string; output?: any }) => {
+const ToolCallMessage = ({ toolName, args, state }: { toolName: string; args: any; state: string }) => {
+    const t = useI18n()
     const isLoading = state === "call" || state === "partial-call"
     return (
         <div className="flex items-center gap-2 text-muted-foreground text-sm py-2">
@@ -135,10 +127,10 @@ const ToolCallMessage = ({ toolName, args, state, output }: { toolName: string; 
             <div className="flex flex-col">
                 <span>
                     {state === "result"
-                        ? `Completed ${toolName}`
+                        ? t('chat.tool.completed', { toolName })
                         : state === "partial-call"
-                            ? `Preparing ${toolName}...`
-                            : `Calling ${toolName}...`}
+                            ? t('chat.tool.preparing', { toolName })
+                            : t('chat.tool.calling', { toolName })}
                 </span>
                 {args && (
                     <span className="text-xs opacity-70">
@@ -157,17 +149,16 @@ const ToolCallMessage = ({ toolName, args, state, output }: { toolName: string; 
 // Main Component
 export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
     const timezone = useUserStore(state => state.timezone)
-    const { supabaseUser: user } = useUserStore.getState()
+    const user = useUserStore(state => state.supabaseUser)
     const locale = useCurrentLocale();
     const t = useI18n()
     const [isStarted, setIsStarted] = useState(false)
     const [hideFirstMessage, setHideFirstMessage] = useState(false)
     const { messages: storedMessages, setMessages: setStoredMessages } = useChatStore()
     const [isLoadingMessages, setIsLoadingMessages] = useState(true)
+    const lastUserIdRef = useRef<string | null>(null)
 
     // Using use-stick-to-bottom for scroll management
-    const moods = useMoodStore(state => state.moods)
-    const setMoods = useMoodStore(state => state.setMoods)
 
     // Helper to extract plain text from a UI message
     const getMessageText = useCallback((message: UIMessage) => {
@@ -188,47 +179,52 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
         return ((message as any).content as string) || ""
     }, [])
 
-    // Load stored messages when component mounts
-    // Load from user mood store if no messages are stored
     useEffect(() => {
-        const loadStoredMessages = async () => {
-            // If user is not logged in or there are stored messages, return
-            if (!user?.id || storedMessages.length > 0) return
+        // When account changes, clear local UI state first to avoid showing the previous user's chat.
+        const currentUserId = user?.id ?? null
+        if (lastUserIdRef.current !== currentUserId) {
+            lastUserIdRef.current = currentUserId
+            setStoredMessages([])
+            setIsStarted(false)
+        }
+
+        const load = async () => {
+            if (!currentUserId) {
+                setIsLoadingMessages(false)
+                return
+            }
+
             setIsLoadingMessages(true)
             try {
-                if (moods.length > 0) {
-                    // Find current day in moods
-                    const currentDay = format(new Date(), 'yyyy-MM-dd')
-                    const currentMood = moods.find(mood => format(mood.day, 'yyyy-MM-dd') === currentDay)
-                    if (currentMood && currentMood.conversation) {
-                        try {
-                            // Hydrate conversation, parsing JSON and mapping to UIMessage structure (including parts)
-                            const parsedConversation = JSON.parse(currentMood.conversation as string)?.map((msg: any) => {
-                                // If legacy structure with just content, wrap as a text part
-                                if (!msg.parts && msg.content) {
-                                    return {
-                                        ...msg,
-                                        parts: [{ type: 'text', text: msg.content }],
-                                    }
-                                }
-                                // Ensure modern messages already have .parts array
-                                return msg
-                            }) || []
+                const history = await getChatHistoryAction()
 
-                            setStoredMessages(parsedConversation as UIMessage[])
-                            setIsStarted(true)
-                        } catch (e) {
-                            console.error('Failed to parse conversation:', e)
-                            setStoredMessages([])
-                        }
+                // Hydrate any legacy messages that may not have parts.
+                const hydrated = (history ?? []).map((msg: any) => {
+                    if (!msg?.parts && msg?.content) {
+                        return { ...msg, parts: [{ type: 'text', text: msg.content }] }
                     }
+                    return msg
+                })
+
+                setStoredMessages(hydrated as UIMessage[])
+                if (hydrated.length > 0) {
+                    setIsStarted(true)
                 }
+            } catch (e) {
+                console.error('Failed to load chat history:', e)
+                setStoredMessages([])
             } finally {
                 setIsLoadingMessages(false)
             }
         }
-        loadStoredMessages()
-    }, [user?.id, moods])
+
+        // Only fetch from server when we don't already have messages in memory.
+        if (storedMessages.length === 0) {
+            void load()
+        } else {
+            setIsLoadingMessages(false)
+        }
+    }, [user?.id])
 
     const [input, setInput] = useState("")
     const [files, setFiles] = useState<{ type: 'file'; mediaType: string; url: string }[]>([])
@@ -245,28 +241,15 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
                 },
             }),
             onFinish: async ({ messages }) => {
-                if (messages[0].role !== "assistant") {
-                    messages.shift()
+                const nextMessages = [...messages]
+                if (nextMessages[0]?.role !== "assistant") {
+                    nextMessages.shift()
                 }
+
                 if (!user?.id) return
-                // Remove first message instruction if it exists
-                const updatedMood = await saveChat(messages)
-                if (updatedMood) {
-                    // Find current day in moods
-                    const currentDay = format(new Date(), 'yyyy-MM-dd')
-                    const currentMoodIndex = moods.findIndex(mood => format(mood.day, 'yyyy-MM-dd') === currentDay)
-                    
-                    if (currentMoodIndex !== -1) {
-                        // Replace existing mood with updated one
-                        const newMoods = [...moods]
-                        newMoods[currentMoodIndex] = updatedMood
-                        setMoods(newMoods)
-                    } else {
-                        // Add new mood if none exists for today
-                        setMoods([...moods, updatedMood])
-                    }
-                }
-                setStoredMessages(messages)
+
+                await saveChatHistoryAction(nextMessages as UIMessage[])
+                setStoredMessages(nextMessages as UIMessage[])
             },
         })
 
@@ -284,10 +267,26 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
     const { visibleMessages, hasMoreMessages, loadMoreMessages } = useMessageVirtualization(messages)
 
     const handleReset = useCallback(async () => {
+        // Stop any in-flight generation so UI doesn't get stuck in a loading state.
+        try {
+            stop()
+        } catch {
+            // no-op
+        }
+
+        // Clear UI state first so the welcome overlay can render immediately.
+        setInput("")
+        setFiles([])
+        setHideFirstMessage(false)
+        setIsLoadingMessages(false)
         setMessages([])
         setStoredMessages([])
         setIsStarted(false)
-    }, [setMessages, setStoredMessages, setIsStarted])
+
+        if (user?.id) {
+            await resetChatHistoryAction()
+        }
+    }, [setMessages, setStoredMessages, stop, user?.id])
 
     return (
         <Card className="h-full flex flex-col bg-background relative">
@@ -374,11 +373,6 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
                                         if (message.parts) {
                                             return message.parts.map((part: any, index: number) => {
                                                 switch (part.type) {
-                                                    case "step-start":
-                                                        if (message.parts && message.parts.length > index) {
-                                                            return null
-                                                        }
-                                                        return <ThinkingMessage key={`${message.id}-step-${index}`} />
                                                     case "text":
                                                         return (
                                                             <BotMessage
@@ -513,7 +507,6 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
                                                                     toolName={toolName}
                                                                     args={part.input}
                                                                     state={part.state}
-                                                                    output={part.output}
                                                                 />
                                                             )
                                                         }

@@ -11,6 +11,6 @@ export default function robots(): MetadataRoute.Robots {
         '/authentication/',
       ],
     },
-    sitemap: 'https://deltalytix.app/sitemap.xml',
+    sitemap: 'https://trades.thekavin.com/sitemap.xml',
   }
 } 

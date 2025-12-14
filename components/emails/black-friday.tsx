@@ -109,7 +109,7 @@ const BlackFridayEmail = (props: { firstName: string; locale?: Locale }) => {
               <Section className="text-center mb-[32px]">
                 <Button
                   className="bg-[#007BFF] text-white text-[16px] px-[24px] py-[12px] rounded-[6px] font-medium box-border"
-                  href="https://deltalytix.app/pricing"
+                  href="https://trades.thekavin.com/pricing"
                 >
                   {content.cta}
                 </Button>
@@ -128,7 +128,7 @@ const BlackFridayEmail = (props: { firstName: string; locale?: Locale }) => {
               <Hr className="border-gray-200 my-[24px]" />
 
               <Text className="text-gray-500 text-[12px] text-center m-0">
-                <Link href="https://deltalytix.app" className="text-gray-500 underline">
+                <Link href="https://trades.thekavin.com" className="text-gray-500 underline">
                   Deltalytix
                 </Link>
                 {' • '}

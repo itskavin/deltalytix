@@ -1,12 +1,25 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import auth from '@/locales/en/auth'
 import { createClient } from '@/server/auth'
 import { revalidatePath } from 'next/cache'
 import { Resend } from 'resend'
 import { render } from '@react-email/render'
 import TeamInvitationEmail from '@/components/emails/team-invitation'
+
+type UserLookup = { id: string; email: string | null }
+
+type TeamManagerLite = { id: string; managerId: string; access: string }
+type TeamLite = {
+  id: string
+  name: string
+  userId: string
+  traderIds: string[]
+  managers: TeamManagerLite[]
+  createdAt?: Date
+  updatedAt?: Date
+} & Record<string, unknown>
+type ManagedTeamLite = { access: string; team: TeamLite } & Record<string, unknown>
 
 export async function createTeam(name: string) {
   try {
@@ -105,7 +118,7 @@ export async function leaveTeam(teamId: string) {
     }
 
     // Remove the user from the traderIds array
-    const updatedTraderIds = team.traderIds.filter(id => id !== user.id)
+  const updatedTraderIds = team.traderIds.filter((id: string) => id !== user.id)
 
     await prisma.team.update({
       where: { id: teamId },
@@ -166,9 +179,12 @@ export async function getUserTeams() {
     })
 
     // Get all unique trader IDs and manager IDs from all teams
-    const allTeams = [...ownedTeams, ...joinedTeams]
-    const allTraderIds = Array.from(new Set(allTeams.flatMap(b => b.traderIds)))
-    const allManagerIds = Array.from(new Set(allTeams.flatMap(b => b.managers.map(m => m.managerId))))
+    const allTeams: TeamLite[] = [
+      ...(ownedTeams as unknown as TeamLite[]),
+      ...(joinedTeams as unknown as TeamLite[]),
+    ]
+    const allTraderIds = Array.from(new Set(allTeams.flatMap((b) => b.traderIds)))
+    const allManagerIds = Array.from(new Set(allTeams.flatMap((b) => b.managers.map((m) => m.managerId))))
     const allUserIds = Array.from(new Set([...allTraderIds, ...allManagerIds]))
     
     // Fetch all user details in one query
@@ -182,25 +198,29 @@ export async function getUserTeams() {
         id: true,
         email: true,
       },
-    })
+    }) as UserLookup[]
 
     // Create a map for quick lookup
-    const usersMap = new Map(users.map(u => [u.id, u]))
+    const usersMap = new Map<string, UserLookup>(users.map((u: UserLookup) => [u.id, u]))
 
     // Enhance teams with trader and manager details
-    const enhancedOwnedTeams = ownedTeams.map(team => ({
+    const enhancedOwnedTeams = (ownedTeams as unknown as TeamLite[]).map((team) => ({
       ...team,
-      traders: team.traderIds.map(id => usersMap.get(id)).filter((trader): trader is { id: string; email: string } => trader !== undefined),
-      managers: team.managers.map(manager => ({
+      traders: team.traderIds
+        .map((id: string) => usersMap.get(id))
+        .filter((trader: UserLookup | undefined): trader is UserLookup => trader !== undefined),
+      managers: team.managers.map((manager: TeamManagerLite) => ({
         ...manager,
         email: usersMap.get(manager.managerId)?.email || 'Unknown',
       })),
     }))
 
-    const enhancedJoinedTeams = joinedTeams.map(team => ({
+    const enhancedJoinedTeams = (joinedTeams as unknown as TeamLite[]).map((team) => ({
       ...team,
-      traders: team.traderIds.map(id => usersMap.get(id)).filter((trader): trader is { id: string; email: string } => trader !== undefined),
-      managers: team.managers.map(manager => ({
+      traders: team.traderIds
+        .map((id: string) => usersMap.get(id))
+        .filter((trader: UserLookup | undefined): trader is UserLookup => trader !== undefined),
+      managers: team.managers.map((manager: TeamManagerLite) => ({
         ...manager,
         email: usersMap.get(manager.managerId)?.email || 'Unknown',
       })),
@@ -399,8 +419,10 @@ export async function getUserTeamAccess() {
     })
 
     // Get all unique trader IDs and manager IDs from managed teams
-    const allTraderIds = Array.from(new Set(managedTeams.flatMap(bm => bm.team.traderIds)))
-    const allManagerIds = Array.from(new Set(managedTeams.flatMap(bm => bm.team.managers.map(m => m.managerId))))
+    const allTraderIds = Array.from(new Set((managedTeams as unknown as ManagedTeamLite[]).flatMap((bm) => bm.team.traderIds)))
+    const allManagerIds = Array.from(
+      new Set((managedTeams as unknown as ManagedTeamLite[]).flatMap((bm) => bm.team.managers.map((m) => m.managerId)))
+    )
     const allUserIds = Array.from(new Set([...allTraderIds, ...allManagerIds]))
     
     // Fetch all user details in one query
@@ -414,17 +436,19 @@ export async function getUserTeamAccess() {
         id: true,
         email: true,
       },
-    })
+    }) as UserLookup[]
 
     // Create a map for quick lookup
-    const usersMap = new Map(users.map(u => [u.id, u]))
+    const usersMap = new Map<string, UserLookup>(users.map((u: UserLookup) => [u.id, u]))
 
     // Transform to include access level, trader details, and manager details
-    const teamsWithAccess = managedTeams.map(bm => ({
+    const teamsWithAccess = (managedTeams as unknown as ManagedTeamLite[]).map((bm) => ({
       ...bm.team,
       userAccess: bm.access,
-      traders: bm.team.traderIds.map(id => usersMap.get(id)).filter((trader): trader is { id: string; email: string } => trader !== undefined),
-      managers: bm.team.managers.map(manager => ({
+      traders: bm.team.traderIds
+        .map((id: string) => usersMap.get(id))
+        .filter((trader: UserLookup | undefined): trader is UserLookup => trader !== undefined),
+      managers: bm.team.managers.map((manager: TeamManagerLite) => ({
         ...manager,
         email: usersMap.get(manager.managerId)?.email || 'Unknown',
       })),
@@ -634,7 +658,7 @@ export async function sendTeamInvitation(teamId: string, traderEmail: string) {
     })
 
     if (existingInvitation && existingInvitation.status === 'PENDING') {
-      throw new Error('An invitation has already been sent to this email')
+      return { success: false, error: 'An invitation has already been sent to this email' }
     }
 
     // Check if user is already a trader in this team
@@ -643,7 +667,7 @@ export async function sendTeamInvitation(teamId: string, traderEmail: string) {
     })
 
     if (existingUser && team.traderIds.includes(existingUser.id)) {
-      throw new Error('User is already a member of this team')
+      return { success: false, error: 'User is already a member of this team' }
     }
 
     // Create or update invitation
@@ -675,7 +699,7 @@ export async function sendTeamInvitation(teamId: string, traderEmail: string) {
 
     // Generate join URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-      (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://deltalytix.app')
+      (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://trades.thekavin.com')
     const joinUrl = `${baseUrl}/teams/join?invitation=${invitation.id}`
 
     // Render email
@@ -697,13 +721,13 @@ export async function sendTeamInvitation(teamId: string, traderEmail: string) {
 
     const resend = new Resend(process.env.RESEND_API_KEY)
     const { error: emailError } = await resend.emails.send({
-      from: 'Deltalytix Team <team@eu.updates.deltalytix.app>',
+      from: process.env.RESEND_FROM_TEAM || process.env.RESEND_FROM || 'Deltalytix Team <team@deltalytix.app>',
       to: traderEmail,
       subject: existingUser?.language === 'fr' 
         ? `Invitation à rejoindre ${team.name} sur Deltalytix`
         : `Invitation to join ${team.name} on Deltalytix`,
       html: emailHtml,
-      replyTo: 'hugo.demenez@deltalytix.app',
+      replyTo: 'yo@trades.thekavin.com',
     })
 
     if (emailError) {
@@ -715,8 +739,22 @@ export async function sendTeamInvitation(teamId: string, traderEmail: string) {
     revalidatePath('/teams/dashboard')
     return { success: true, invitationId: invitation.id }
   } catch (error) {
-    console.error('Error sending team invitation:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to send invitation' }
+    const message = error instanceof Error ? error.message : 'Failed to send invitation'
+
+    // Avoid noisy stack traces for expected user-flow errors.
+    const expectedMessages = new Set([
+      'Unauthorized',
+      'Team not found',
+      'Unauthorized: Only team owners and admin managers can send invitations',
+      'RESEND_API_KEY is not configured',
+      'Failed to send invitation email',
+    ])
+
+    if (!expectedMessages.has(message)) {
+      console.error('Error sending team invitation:', error)
+    }
+
+    return { success: false, error: message }
   }
 }
 
@@ -812,7 +850,7 @@ export async function removeTraderFromTeam(teamId: string, traderId: string) {
     await prisma.team.update({
       where: { id: teamId },
       data: {
-        traderIds: team.traderIds.filter(id => id !== traderId),
+        traderIds: team.traderIds.filter((id: string) => id !== traderId),
       },
     })
 

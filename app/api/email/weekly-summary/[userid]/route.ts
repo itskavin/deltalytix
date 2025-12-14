@@ -38,7 +38,7 @@ export async function POST(req: Request, props: { params: Promise<{ userid: stri
       return NextResponse.json({
         success: true,
         emailData: {
-          from: 'Deltalytix <newsletter@eu.updates.deltalytix.app>',
+          from: process.env.RESEND_FROM_NEWSLETTER || process.env.RESEND_FROM || 'Deltalytix <newsletter@deltalytix.app>',
           to: [newsletter.email],
           replyTo: 'hugo.demenez@deltalytix.app',
           subject: user.language === 'fr' ? 'Nous manquons de vous voir sur Deltalytix' : 'We miss you on Deltalytix',
@@ -78,7 +78,7 @@ export async function POST(req: Request, props: { params: Promise<{ userid: stri
     return NextResponse.json({
       success: true,
       emailData: {
-        from: 'Deltalytix <newsletter@eu.updates.deltalytix.app>',
+        from: process.env.RESEND_FROM_NEWSLETTER || process.env.RESEND_FROM || 'Deltalytix <newsletter@deltalytix.app>',
         to: [user.email],
         subject: user.language === 'fr' ? 'Vos statistiques de trading de la semaine 📈' : 'Your trading statistics for the week 📈',
         html: weeklyStatsEmailHtml,

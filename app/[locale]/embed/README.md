@@ -7,7 +7,7 @@ Embed an interactive analytics dashboard (or a single chart) into any site using
 ```html
 <iframe
   id="deltalytix-embed"
-  src="https://deltalytix.app/embed?theme=dark"
+  src="https://trades.thekavin.com/embed?theme=dark"
   width="100%"
   height="900"
   style="border:0;"
@@ -34,13 +34,13 @@ Examples:
 
 ```html
 <!-- Single chart with French language -->
-<iframe src="https://deltalytix.app/embed?charts=pnl-per-contract-daily&lang=fr" ...></iframe>
+<iframe src="https://trades.thekavin.com/embed?charts=pnl-per-contract-daily&lang=fr" ...></iframe>
 
 <!-- Multiple charts with English language (default) -->
-<iframe src="https://deltalytix.app/embed?charts=time-range-performance,daily-pnl,pnl-by-side&lang=en" ...></iframe>
+<iframe src="https://trades.thekavin.com/embed?charts=time-range-performance,daily-pnl,pnl-by-side&lang=en" ...></iframe>
 
 <!-- Preset with palette tweaks (HEX, RGB, HSL all accepted) -->
-<iframe src="https://deltalytix.app/embed?theme=dark&preset=ocean&chart1=%233b82f6&border=rgba(229,231,235,1)&tooltipBg=0%200%200%20/%200.8" ...></iframe>
+<iframe src="https://trades.thekavin.com/embed?theme=dark&preset=ocean&chart1=%233b82f6&border=rgba(229,231,235,1)&tooltipBg=0%200%200%20/%200.8" ...></iframe>
 ```
 
 ### Available chart keys
@@ -73,10 +73,10 @@ type Trade = {
 ```
 
 ### PostMessage API
-Target the iframe and post structured messages. Origin can be restricted to `https://deltalytix.app` for production.
+Target the iframe and post structured messages. Origin can be restricted to `https://trades.thekavin.com` for production.
 
 ```html
-<iframe id="deltalytix-embed" src="https://deltalytix.app/embed" ...></iframe>
+<iframe id="deltalytix-embed" src="https://trades.thekavin.com/embed" ...></iframe>
 <script>
   const iframe = document.getElementById('deltalytix-embed')
 
@@ -94,32 +94,32 @@ Target the iframe and post structured messages. Origin can be restricted to `htt
         instrument: 'ES'
       }
     ]
-  }, 'https://deltalytix.app')
+  }, 'https://trades.thekavin.com')
 
   // 2) Generate N random trades (useful for demos)
-  iframe.contentWindow.postMessage({ type: 'ADD_TRADES', count: 25 }, 'https://deltalytix.app')
+  iframe.contentWindow.postMessage({ type: 'ADD_TRADES', count: 25 }, 'https://trades.thekavin.com')
 
   // 3) Reset back to initial demo data
-  iframe.contentWindow.postMessage({ type: 'RESET_TRADES' }, 'https://deltalytix.app')
+  iframe.contentWindow.postMessage({ type: 'RESET_TRADES' }, 'https://trades.thekavin.com')
 
   // 4) Clear all trades
-  iframe.contentWindow.postMessage({ type: 'CLEAR_TRADES' }, 'https://deltalytix.app')
+  iframe.contentWindow.postMessage({ type: 'CLEAR_TRADES' }, 'https://trades.thekavin.com')
 
   // 5) Add Phoenix orders (they will be parsed and processed FIFO into trades)
   //    Provide the raw orders array from your Phoenix export
-  iframe.contentWindow.postMessage({ type: 'ADD_PHOENIX_ORDERS', orders: [/* ... */] }, 'https://deltalytix.app')
+  iframe.contentWindow.postMessage({ type: 'ADD_PHOENIX_ORDERS', orders: [/* ... */] }, 'https://trades.thekavin.com')
 </script>
 ```
 
 Notes:
 - Messages are JSON-serializable objects with a `type` field.
-- For local testing or permissive setups you can use `'*'` as the target origin instead of `https://deltalytix.app`.
+- For local testing or permissive setups you can use `'*'` as the target origin instead of `https://trades.thekavin.com`.
 
 ### Theming
 Choose a theme via the `theme` query parameter. Example:
 
 ```html
-<iframe src="https://deltalytix.app/embed?theme=light" ...></iframe>
+<iframe src="https://trades.thekavin.com/embed?theme=light" ...></iframe>
 ```
 
 ### Sizing and layout

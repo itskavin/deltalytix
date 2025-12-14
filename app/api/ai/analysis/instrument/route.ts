@@ -1,7 +1,7 @@
 import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { z } from 'zod/v3';
-import { openai } from "@ai-sdk/openai";
+import { getPreferredModelForCurrentUser } from "@/lib/ai/user-model";
 
 // Analysis Tools
 import { generateAnalysisComponent } from "../accounts/generate-analysis-component";
@@ -80,8 +80,13 @@ export async function POST(req: NextRequest) {
     const validatedData = analysisSchema.parse({ username, locale, timezone });
     console.log('Validated data:', validatedData);
 
+    const model = await getPreferredModelForCurrentUser({
+      purpose: 'analysis',
+      fallbackOpenAiModelId: 'gpt-4o-mini',
+    })
+
     const result = streamText({
-      model: openai("gpt-4o-mini"),
+      model,
       system: getInstrumentAnalysisPrompt(validatedData.locale),
       tools: {
         generateAnalysisComponent,

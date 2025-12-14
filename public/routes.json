@@ -6,6 +6,7 @@
   "/[locale]/community",
   "/[locale]/community/post/[id]",
   "/[locale]/dashboard",
+  "/[locale]/dashboard/ai-settings",
   "/[locale]/dashboard/billing",
   "/[locale]/dashboard/data",
   "/[locale]/dashboard/import",

@@ -165,7 +165,7 @@ export async function GET(req: Request) {
             const unsubscribeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/settings/notifications`
 
             const { data, error } = await resend.emails.send({
-              from: 'Deltalytix Renewals <renewals@eu.updates.deltalytix.app>',
+                from: process.env.RESEND_FROM_RENEWALS || process.env.RESEND_FROM || 'Deltalytix Renewals <renewals@deltalytix.app>',
               to: userEmail,
               subject: userLanguage === 'fr' 
                 ? `Renouvellement prochain - ${accountName}`

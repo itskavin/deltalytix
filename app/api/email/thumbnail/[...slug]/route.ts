@@ -40,7 +40,7 @@ export async function GET(
       const res = await fetch(url, {
         headers: {
           "User-Agent":
-            "Mozilla/5.0 (compatible; DeltalytixBot/1.0; +https://deltalytix.app)",
+            "Mozilla/5.0 (compatible; DeltalytixBot/1.0; +https://trades.thekavin.com)",
         },
         next: { revalidate: 60 * 60 * 24 },
       });
