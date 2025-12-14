@@ -6,7 +6,7 @@
   "license": "CC-BY-NC-4.0",
   "scripts": {
     "dev": "node node_modules/next/dist/bin/next dev --disable-source-maps",
-    "prebuild": "bun scripts/generate-routes.ts",
+    "prebuild": "tsx scripts/generate-routes.ts",
     "build": "node node_modules/next/dist/bin/next build",
     "start": "node node_modules/next/dist/bin/next start",
     "lint": "eslint",
@@ -170,6 +170,7 @@
     "react-email": "4.3.2",
     "tailwindcss": "^4.1.16",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "tw-animate-css": "latest",
     "typescript": "5.9.3"
   }

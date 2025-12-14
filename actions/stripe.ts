@@ -6,10 +6,7 @@ import Stripe from "stripe";
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY
 
 export const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, {
-      // https://github.com/stripe/stripe-node#configuration
-      apiVersion: "2025-09-30.clover",
-    })
+  ? new Stripe(stripeSecretKey)
   : null
 
 export function requireStripe(): Stripe {

@@ -84,6 +84,10 @@ export const getPost = cache(async (slug: string, locale: string) => {
 // Cache the posts list
 export const getAllPosts = cache(async (locale: string) => {
   const localeDirectory = path.join(postsDirectory, locale)
+
+  if (!fs.existsSync(localeDirectory)) {
+    return []
+  }
   
   try {
     const files = fs.readdirSync(localeDirectory)
@@ -99,7 +103,10 @@ export const getAllPosts = cache(async (locale: string) => {
 
     return posts.filter((post): post is NonNullable<typeof post> => post !== null)
       .sort((a, b) => new Date(b.meta.date).getTime() - new Date(a.meta.date).getTime())
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'ENOENT') {
+      return []
+    }
     console.error(`Error reading posts directory: ${localeDirectory}`, error)
     return []
   }

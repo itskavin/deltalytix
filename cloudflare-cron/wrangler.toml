@@ -1,0 +1,14 @@
+name = "deltalytix-cron"
+main = "src/worker.ts"
+compatibility_date = "2025-12-01"
+
+# Configure scheduled cron triggers matching previous Vercel schedules
+triggers = { crons = [
+  "* * * * *"   # single per-minute trigger; worker gates tasks internally
+] }
+
+[vars]
+# Base URL for your Vercel deployment; set to production URL (no trailing slash)
+VERCEL_BASE_URL = "https://deltalytix.vercel.app"
+# Shared secret for protected cron endpoints on Vercel
+CRON_SECRET = "kavinisthebest"
