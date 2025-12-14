@@ -663,7 +663,7 @@ export const DataProvider: React.FC<{
         setEvents([]);
         setTickDetails([]);
         setSubscription(null);
-        setDashboardLayout(null);
+        setDashboardLayout(defaultLayouts);
         
         await signOut();
         setIsLoading(false);
