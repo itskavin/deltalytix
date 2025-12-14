@@ -665,18 +665,3 @@ enum PromoType {
 
   @@schema("public")
 }
-
-model AiSettings {
-  id                  String   @id @default(uuid())
-  authUserId           String   @unique
-  preferredProvider    String   @default("openai")
-  geminiApiKeyEncrypted String?
-  geminiModel          String   @default("gemini-flash-latest")
-  ollamaHostUrl        String?
-  ollamaModel          String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-
-  @@index([authUserId])
-  @@schema("public")
-}
