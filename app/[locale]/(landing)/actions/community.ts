@@ -398,7 +398,7 @@ async function sendCommentNotificationEmail({
 
   try {
     await resend.emails.send({
-      from: 'Deltalytix Community <community@eu.updates.deltalytix.app>',
+      from: process.env.RESEND_FROM_COMMUNITY || process.env.RESEND_FROM || 'Deltalytix Community <community@deltalytix.app>',
       to: recipientEmail,
       subject: language === 'fr' ? 'Nouveau commentaire sur votre publication' : 'New comment on your post',
       react: CommentNotificationEmail({

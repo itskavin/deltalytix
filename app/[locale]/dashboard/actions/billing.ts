@@ -56,7 +56,7 @@ export type SubscriptionWithPrice = {
   }>
 }
 
-export async function getSubscriptionData() {
+export async function getSubscriptionData(): Promise<SubscriptionWithPrice | null> {
   console.debug('getSubscriptionData')
   const supabase = await createClient()
 
@@ -85,7 +85,7 @@ export async function getSubscriptionData() {
         id: 'pro-local-plan',
         name: 'Plus',
         amount: 0,
-        interval: 'lifetime',
+        interval: 'lifetime' as const,
       },
       promotion: undefined,
       invoices: [],
@@ -409,6 +409,15 @@ function createLifetimeSubscriptionData(localSubscription: any, invoices: any[])
 
 export async function updateSubscription(action: 'pause' | 'resume' | 'cancel', subscriptionId: string) {
   try {
+    const billingEnabled = process.env.ENABLE_STRIPE_BILLING === 'true'
+    if (!billingEnabled) {
+      return { success: true }
+    }
+
+    if (!stripe) {
+      return { success: false, error: 'Stripe is not configured' }
+    }
+
     if (action === 'pause' || action === 'cancel') {
       // Cancel at period end for all subscriptions
       await stripe.subscriptions.update(subscriptionId, {
@@ -460,6 +469,15 @@ export async function switchSubscriptionPlan(newLookupKey: string) {
   const supabase = await createClient()
 
   try {
+    const billingEnabled = process.env.ENABLE_STRIPE_BILLING === 'true'
+    if (!billingEnabled) {
+      return { success: false, error: 'Billing is disabled' }
+    }
+
+    if (!stripe) {
+      return { success: false, error: 'Stripe is not configured' }
+    }
+
     // Get the current user
     const { data: { user } } = await supabase.auth.getUser()
     if (!user?.email) throw new Error('User not found')

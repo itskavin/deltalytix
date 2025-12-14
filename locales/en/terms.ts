@@ -4,7 +4,7 @@ export default {
         sections: {
             companyInfo: {
                 title: "1. Company Information",
-                content: "Deltalytix is owned and operated by Hugo DEMENEZ, operating as a sole proprietorship.",
+                content: "Deltalytix is owned and operated by Kavin, operating as a sole proprietorship.",
                 contact: "Contact: "
             },
             services: {

@@ -9,11 +9,10 @@
   [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
   [![React](https://img.shields.io/badge/React-19-blue)](https://reactjs.org/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
-  [![Discord](https://img.shields.io/badge/Discord-Join%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/a5YVF5Ec2n)
+  [![Discord](https://img.shields.io/badge/Discord-Join%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/hGjKfGwtcb)
+    
   
-  <a href="https://trustmrr.com/startup/deltalytix" target="_blank"><img src="https://trustmrr.com/api/embed/deltalytix?format=svg" alt="TrustMRR verified revenue badge" width="220" height="90" /></a>
-  
-  [🚀 Live Demo](https://deltalytix.app) • [💬 Discord Community](https://discord.gg/a5YVF5Ec2n) • [🐛 Report Bug](https://github.com/hugodemenez/deltalytix/issues)
+  [🚀 Live Demo](https://trades.thekavin.com) • [💬 Discord Community](https://discord.gg/hGjKfGwtcb) • [🐛 Report Bug](https://github.com/itskavin/deltalytix/issues)
 </div>
 
 ---
@@ -120,7 +119,7 @@ Before you begin, ensure you have the following:
 ### Step 1: Clone and Install
 
 ```bash
-git clone https://github.com/hugodemenez/deltalytix.git
+git clone https://github.com/itskavin/deltalytix.git
 cd deltalytix
 npm install  # or bun install
 ```
@@ -408,10 +407,10 @@ Deltalytix was inspired by the need for better trading analytics tools in the op
 ---
 
 <div align="center">
-  <p>Made with ❤️ by Hugo DEMENEZ & the Deltalytix community</p>
+  <p>Made with ❤️ by Kavin & the Deltalytix community</p>
   <p>
-    <a href="https://github.com/hugodemenez/deltalytix">GitHub</a> •
-    <a href="https://discord.gg/a5YVF5Ec2n">Discord</a> •
-    <a href="https://deltalytix.app">Website</a>
+    <a href="https://github.com/itskavin/deltalytix">GitHub</a> •
+    <a href="https://discord.gg/hGjKfGwtcb">Discord</a> •
+    <a href="https://trades.thekavin.com">Website</a>
   </p>
 </div>

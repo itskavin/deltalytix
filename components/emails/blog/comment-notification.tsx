@@ -31,7 +31,7 @@ const CommentNotificationEmail = ({
   commentContent,
   commentDate,
   recipientName,
-  unsubscribeUrl = 'https://deltalytix.app/settings/notifications',
+  unsubscribeUrl = 'https://trades.thekavin.com/settings/notifications',
   language = 'fr'
 }: CommentNotificationEmailProps) => {
   const t = {

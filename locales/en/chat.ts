@@ -24,6 +24,11 @@ export default {
         url: "URL",
         writeMessage: "Write a message...",
         aiThinking: "AI is thinking...",
+        tool: {
+            calling: "Calling {toolName}...",
+            preparing: "Preparing {toolName}...",
+            completed: "Completed {toolName}",
+        },
         chart: {
             generating: "Generating equity chart...",
             noData: "No data available for chart generation",

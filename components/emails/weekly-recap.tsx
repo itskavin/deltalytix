@@ -299,7 +299,7 @@ const ActionButtons = ({ t }: { t: typeof translations.fr }) => (
           <td className="w-[50%] pl-[8px]">
             <div className="bg-white border border-[#3469DF] rounded-[6px] text-center py-[12px] px-[16px] box-border">
               <Link
-                href="https://deltalytix.app/dashboard"
+                href="https://trades.thekavin.com/dashboard"
                 className="text-[#3469DF] font-medium no-underline text-[14px]"
               >
                 {t.visitDashboard}
@@ -340,7 +340,7 @@ export default function TraderStatsEmail({
   const t = translations[language as keyof typeof translations] || translations.fr;
 
   const unsubscribeUrl = email
-    ? `https://deltalytix.app/api/email/unsubscribe?email=${encodeURIComponent(email)}`
+    ? `https://trades.thekavin.com/api/email/unsubscribe?email=${encodeURIComponent(email)}`
     : '#';
 
   // Calculate win rate percentage
@@ -584,9 +584,9 @@ export default function TraderStatsEmail({
               )}
 
               <Text className="text-gray-800 mt-8 mb-4">
-                Hugo DEMENEZ
+                Kavin
                 <br />
-                <span className="text-gray-600">{t.founder}</span>
+                <span className="text-gray-600">trades.thekavin.com</span>
               </Text>
 
               <Hr className="border-gray-200 my-8" />

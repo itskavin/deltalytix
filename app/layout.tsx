@@ -19,13 +19,13 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const ref = (params?.ref as string) ?? '';
 
   // Build the dynamic image URL (works locally & in production)
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://deltalytix.app';
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://trades.thekavin.com';
   const ogUrl = `${base}/api/og${ref ? `?ref=${encodeURIComponent(ref)}` : ''}`;
 
   return {
     title: 'Deltalytix',
     description: 'Next generation trading dashboard',
-    metadataBase: new URL('https://deltalytix.app'),
+    metadataBase: new URL('https://trades.thekavin.com'),
 
     // ---------- OPEN GRAPH ----------
     openGraph: {
@@ -82,9 +82,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
     // ---------- OTHER ----------
     other: { google: 'notranslate' },
-    authors: [{ name: 'Hugo DEMENEZ' }],
+    authors: [{ name: 'Kavin' }],
     creator: 'Hugo DEMENEZ',
-    publisher: 'Hugo DEMENEZ',
+    publisher: 'Kavin',
     formatDetection: { email: false, address: false, telephone: false },
   };
 }

@@ -54,13 +54,13 @@ export default function TeamInvitationEmail({
   teamName = "My Team",
   inviterName = "trader",
   inviterEmail = "trader@example.com",
-  joinUrl = "https://deltalytix.app/teams/join",
+  joinUrl = "https://trades.thekavin.com/teams/join",
   language = "fr",
 }: TeamInvitationEmailProps) {
   const lang = language === "en" ? "en" : "fr";
   const t = content[lang];
   const unsubscribeUrl = email
-    ? `https://deltalytix.app/api/email/unsubscribe?email=${encodeURIComponent(email)}`
+    ? `https://trades.thekavin.com/api/email/unsubscribe?email=${encodeURIComponent(email)}`
     : '#';
 
   return (
@@ -108,9 +108,9 @@ export default function TeamInvitationEmail({
               </Section>
 
               <Text className="text-gray-800 mt-8 mb-4">
-                Hugo DEMENEZ
+                Kavin
                 <br />
-                <span className="text-gray-600">Founder of Deltalytix</span>
+                <span className="text-gray-600">trades.thekavin.com</span>
               </Text>
 
               <Hr className="border-gray-200 my-8" />

@@ -36,9 +36,9 @@ import {
   Sun,
   Laptop,
   Settings,
+  Bot,
   Building2,
 } from 'lucide-react'
-import { SubscriptionBadge } from './subscription-badge'
 import { signOut } from '@/server/auth'
 import { useMemo } from 'react'
 
@@ -95,7 +95,6 @@ export default function UserMenu() {
                 {user?.email![0]}
               </AvatarFallback>
             </Avatar>
-            <SubscriptionBadge className="absolute -bottom-1 -right-1 px-1 py-0 text-[10px] leading-3" />
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56">
@@ -118,6 +117,14 @@ export default function UserMenu() {
                 <Settings className="mr-2 h-4 w-4" />
                 <span>{t('dashboard.settings')}</span>
                 <DropdownMenuShortcut>⌘,</DropdownMenuShortcut>
+              </div>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/ai-settings">
+              <div className="flex items-center w-full">
+                <Bot className="mr-2 h-4 w-4" />
+                <span>{t('dashboard.aiSettings')}</span>
               </div>
             </Link>
           </DropdownMenuItem>

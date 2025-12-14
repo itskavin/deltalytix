@@ -25,7 +25,7 @@ export default function WelcomeEmail({ firstName = 'trader', email, language, yo
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
   const thumbnailUrl = `${baseUrl}/api/email/thumbnail/${youtubeId}/maxresdefault`;
   const unsubscribeUrl = email 
-    ? `https://deltalytix.app/api/email/unsubscribe?email=${encodeURIComponent(email)}`
+    ? `https://trades.thekavin.com/api/email/unsubscribe?email=${encodeURIComponent(email)}`
     : '#';
 
   if (language === 'fr') {
@@ -80,7 +80,7 @@ export default function WelcomeEmail({ firstName = 'trader', email, language, yo
               <Section className="text-center">
                 <Button 
                   className="bg-black text-white text-sm px-6 py-2.5 rounded-md font-medium box-border"
-                  href="https://deltalytix.app/dashboard"
+                  href="https://trades.thekavin.com/dashboard"
                 >
                   Accéder à mon tableau de bord →
                 </Button>
@@ -153,7 +153,7 @@ export default function WelcomeEmail({ firstName = 'trader', email, language, yo
               <Section className="text-center">
                 <Button 
                   className="bg-black text-white text-sm px-6 py-2.5 rounded-md font-medium box-border"
-                  href="https://deltalytix.app/dashboard"
+                  href="https://trades.thekavin.com/dashboard"
                 >
                   Access my dashboard →
                 </Button>

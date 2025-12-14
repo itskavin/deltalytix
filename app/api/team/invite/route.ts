@@ -111,7 +111,7 @@ export async function POST(req: Request) {
 
     // Send email
     const { data, error } = await resend.emails.send({
-      from: 'Deltalytix Team <team@eu.updates.deltalytix.app>',
+      from: process.env.RESEND_FROM_TEAM || process.env.RESEND_FROM || 'Deltalytix Team <team@deltalytix.app>',
       to: email,
       subject: existingUser?.language === 'fr' 
         ? `Invitation à rejoindre ${team.name} sur Deltalytix`

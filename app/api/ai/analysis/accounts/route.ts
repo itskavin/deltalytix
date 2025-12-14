@@ -1,7 +1,8 @@
 import { convertToModelMessages, streamText, UIMessage, stepCountIs } from "ai";
 import { NextRequest } from "next/server";
 import { z } from 'zod/v3';
-import { openai } from "@ai-sdk/openai";
+import { openai } from '@ai-sdk/openai'
+import { getPreferredModelForCurrentUser } from "@/lib/ai/user-model";
 
 // Analysis Tools
 import { generateAnalysisComponent } from "./generate-analysis-component";
@@ -94,19 +95,63 @@ export async function POST(req: NextRequest) {
     const validatedData = analysisSchema.parse({ username, locale, timezone, currentTime });
     console.log('Validated data:', validatedData);
 
-    const result = streamText({
-      model: openai("gpt-4o-mini"),
-      system: getAccountAnalysisPrompt(validatedData.locale, validatedData.username, validatedData.timezone, validatedData.currentTime),
-      tools: {
-        getAccountPerformance,
-        generateAnalysisComponent,
-      },
-      messages: convertToModelMessages(messages),
-      stopWhen: stepCountIs(10),
-      onStepFinish: (step) => {
-        console.log('Step finished:', step.usage);
+    const model = await getPreferredModelForCurrentUser({
+      purpose: 'analysis',
+      fallbackOpenAiModelId: 'gpt-4o-mini',
+      requireTools: true,
+    })
+
+    const systemPrompt = getAccountAnalysisPrompt(
+      validatedData.locale,
+      validatedData.username,
+      validatedData.timezone,
+      validatedData.currentTime,
+    )
+
+    const tools = {
+      getAccountPerformance,
+      generateAnalysisComponent,
+    }
+
+    const isToolsUnsupportedError = (err: unknown): boolean => {
+      const maybe = err as any
+      const msg = String(maybe?.message ?? '')
+      const responseBody = String(maybe?.responseBody ?? '')
+      return (
+        maybe?.statusCode === 400 &&
+        (msg.includes('does not support tools') || responseBody.includes('does not support tools'))
+      )
+    }
+
+    let result
+    try {
+      result = streamText({
+        model,
+        system: systemPrompt,
+        tools,
+        messages: convertToModelMessages(messages),
+        stopWhen: stepCountIs(10),
+        onStepFinish: (step) => {
+          console.log('Step finished:', step.usage);
+        },
+      })
+    } catch (error) {
+      if (isToolsUnsupportedError(error)) {
+        console.warn('Selected model does not support tools; falling back to OpenAI for analysis tools.')
+        result = streamText({
+          model: openai('gpt-4o-mini'),
+          system: systemPrompt,
+          tools,
+          messages: convertToModelMessages(messages),
+          stopWhen: stepCountIs(10),
+          onStepFinish: (step) => {
+            console.log('Step finished:', step.usage);
+          },
+        })
+      } else {
+        throw error
       }
-    });
+    }
 
     return result.toUIMessageStreamResponse();
   } catch (error) {

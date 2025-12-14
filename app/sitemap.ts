@@ -3,49 +3,49 @@ import { MetadataRoute } from 'next'
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: 'https://deltalytix.app',
+      url: 'https://trades.thekavin.com',
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 1,
     },
     {
-      url: 'https://deltalytix.app/about',
+      url: 'https://trades.thekavin.com/about',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
-      url: 'https://deltalytix.app/pricing',
+      url: 'https://trades.thekavin.com/pricing',
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
-      url: 'https://deltalytix.app/updates',
+      url: 'https://trades.thekavin.com/updates',
       lastModified: new Date(),
       changeFrequency: 'weekly', 
       priority: 0.7,
     },
     {
-      url: 'https://deltalytix.app/support',
+      url: 'https://trades.thekavin.com/support',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.6,
     },
     {
-      url: 'https://deltalytix.app/authentication',
+      url: 'https://trades.thekavin.com/authentication',
       lastModified: new Date(),
       changeFrequency: 'yearly',
       priority: 0.6,
     },
     {
-      url: 'https://deltalytix.app/privacy',
+      url: 'https://trades.thekavin.com/privacy',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.5,
     },
     {
-      url: 'https://deltalytix.app/terms',
+      url: 'https://trades.thekavin.com/terms',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.5,

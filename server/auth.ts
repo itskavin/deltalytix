@@ -6,6 +6,29 @@ import { prisma } from '@/lib/prisma'
 import { headers } from "next/headers"
 import { User } from '@supabase/supabase-js'
 
+const SUPABASE_FETCH_TIMEOUT_MS = Number(process.env.SUPABASE_FETCH_TIMEOUT_MS ?? 12000)
+
+function withTimeoutFetch(timeoutMs: number) {
+  return async (input: RequestInfo | URL, init?: RequestInit) => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+    try {
+      // Respect an existing signal if provided, otherwise use our timeout signal.
+      const signal = init?.signal
+        ? (typeof AbortSignal !== 'undefined' && 'any' in AbortSignal
+            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (AbortSignal as any).any([init.signal, controller.signal])
+            : init.signal)
+        : controller.signal
+
+      return await fetch(input, { ...init, signal })
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+}
+
 export async function getWebsiteURL() {
   let url =
     process?.env?.NEXT_PUBLIC_SITE_URL ?? // Set this to your site URL in production env.
@@ -51,6 +74,9 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: {
+        fetch: withTimeoutFetch(SUPABASE_FETCH_TIMEOUT_MS),
+      },
       cookies: {
         getAll() {
           return cookieStore.getAll()

@@ -132,6 +132,8 @@ model User {
   teamSubscriptions     TeamSubscription[]
   comments              Comment[]
   dashboardLayout       DashboardLayout?
+  chatHistory           ChatHistory?
+  aiSettings            AiSettings?
   groups                Group[]
   moods                 Mood[]
   notifications         Notification[]
@@ -145,6 +147,31 @@ model User {
   referral              Referral?
 
   @@index([email])
+  @@schema("public")
+}
+
+enum AiProvider {
+  openai
+  gemini
+  ollama
+
+  @@schema("public")
+}
+
+model AiSettings {
+  id                 String     @id @default(uuid())
+  authUserId         String     @unique
+  preferredProvider  AiProvider @default(gemini)
+  geminiModel        String     @default("gemini-flash-latest")
+  geminiApiKeyEncrypted String?
+  ollamaHostUrl      String?
+  ollamaModel        String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  user               User       @relation(fields: [authUserId], references: [auth_user_id], onDelete: Cascade)
+
+  @@index([authUserId])
   @@schema("public")
 }
 
@@ -393,6 +420,18 @@ model Mood {
   @@unique([userId, day])
   @@index([userId])
   @@index([day])
+  @@schema("public")
+}
+
+model ChatHistory {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  messages  Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [auth_user_id], onDelete: Cascade)
+
+  @@index([userId])
   @@schema("public")
 }
 

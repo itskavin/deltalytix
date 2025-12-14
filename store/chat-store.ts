@@ -8,11 +8,14 @@ interface ChatState {
   clearMessages: () => void
 }
 
-export const useChatStore = create<ChatState>((set) => ({
-  messages: [],
-  setMessages: (messages) => set({ messages }),
-  addMessage: (message) => set((state) => ({ 
-    messages: [...state.messages, message] 
-  })),
-  clearMessages: () => set({ messages: [] })
-}))
+export const useChatStore = create<ChatState>()(
+  (set) => ({
+    messages: [],
+    setMessages: (messages) => set({ messages }),
+    addMessage: (message) =>
+      set((state) => ({
+        messages: [...state.messages, message],
+      })),
+    clearMessages: () => set({ messages: [] }),
+  })
+)

@@ -71,10 +71,10 @@ interface Team {
   name: string
   userId: string
   traderIds: string[]
-  traders: { id: string; email: string }[]
+  traders: { id: string; email: string | null }[]
   managers: { id: string; managerId: string; access: string; email: string }[]
-  createdAt: any
-  updatedAt: any
+  createdAt?: any
+  updatedAt?: any
   userAccess?: string
 }
 
@@ -503,8 +503,12 @@ export function TeamManagement({
         toast.success(t('teams.invitations.sent'))
         setNewTraderEmail('')
         // Only reload pending invitations, no need to reload all team data
-        await loadPendingInvitations()
+        await loadPendingInvitations(selectedTeam.id)
       } else {
+        // If an invitation already exists, refresh so it shows up.
+        if (result.error === 'An invitation has already been sent to this email') {
+          await loadPendingInvitations(selectedTeam.id)
+        }
         toast.error(result.error || t('teams.traders.add.error'))
       }
     } catch (error) {
@@ -515,11 +519,12 @@ export function TeamManagement({
     }
   }
 
-  const loadPendingInvitations = async () => {
-    if (!selectedTeam) return
+  const loadPendingInvitations = async (teamId?: string) => {
+    const effectiveTeamId = teamId || selectedTeam?.id
+    if (!effectiveTeamId) return
 
     try {
-      const result = await getTeamInvitations(selectedTeam.id)
+      const result = await getTeamInvitations(effectiveTeamId)
       if (result.success) {
         setPendingInvitations(result.invitations || [])
       }
@@ -738,10 +743,8 @@ export function TeamManagement({
                         setSelectedTeam(team)
                         setRenameTeamName(team.name)
                         setManageDialogOpen(true)
-                        // Load pending invitations when dialog opens
-                        setTimeout(async () => {
-                          await loadPendingInvitations()
-                        }, 100)
+                        // Load pending invitations for this team immediately
+                        void loadPendingInvitations(team.id)
                       }}
                     >
                       <Settings className="h-3 w-3 mr-1" />
@@ -975,9 +978,9 @@ export function TeamManagement({
                     <p className="text-sm text-muted-foreground">{t('teams.traders.noTraders')}</p>
                   ) : (
                     <div className="space-y-1">
-                      {selectedTeam?.traders.map((trader: { id: string; email: string }) => (
+                      {selectedTeam?.traders.map((trader) => (
                         <div key={trader.id} className="flex items-center justify-between bg-muted/50 p-2 rounded-md text-sm">
-                          <span>{trader.email}</span>
+                          <span>{trader.email ?? ''}</span>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline">{t('teams.management.member')}</Badge>
                             <AlertDialog>
@@ -990,7 +993,7 @@ export function TeamManagement({
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>{t('teams.management.removeTrader')}</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    {t('teams.management.removeTraderConfirm').replace('{email}', trader.email)}
+                                    {t('teams.management.removeTraderConfirm').replace('{email}', trader.email ?? '')}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

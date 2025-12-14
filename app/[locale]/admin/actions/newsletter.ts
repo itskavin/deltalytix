@@ -137,10 +137,10 @@ export async function sendNewsletter({
     for (const batch of batches) {
       try {
         const emailBatch = batch.map(({ email, firstName }) => {
-          const unsubscribeUrl = `https://deltalytix.app/api/email/unsubscribe?email=${encodeURIComponent(email)}`
+          const unsubscribeUrl = `https://trades.thekavin.com/api/email/unsubscribe?email=${encodeURIComponent(email)}`
           
-          return {
-            from: 'Deltalytix <newsletter@eu.updates.deltalytix.app>',
+            return {
+              from: process.env.RESEND_FROM_NEWSLETTER || process.env.RESEND_FROM || 'Deltalytix <newsletter@deltalytix.app>',
             to: [email],
             subject,
             reply_to: 'hugo.demenez@deltalytix.app',
@@ -188,10 +188,10 @@ export async function sendTestNewsletter(email: string, firstName: string, param
     }
     const resend = new Resend(process.env.RESEND_API_KEY)
 
-    const unsubscribeUrl = `https://deltalytix.app/api/email/unsubscribe?email=${encodeURIComponent(email)}`
+    const unsubscribeUrl = `https://trades.thekavin.com/api/email/unsubscribe?email=${encodeURIComponent(email)}`
 
     await resend.emails.send({
-      from: 'Deltalytix <newsletter@eu.updates.deltalytix.app>',
+        from: process.env.RESEND_FROM_NEWSLETTER || process.env.RESEND_FROM || 'Deltalytix <newsletter@deltalytix.app>',
       to: email,
       subject: `[TEST] ${params.subject}`,
       react: NewsletterEmail({ 
@@ -231,7 +231,7 @@ export async function renderEmailPreview(params: {
         features: params.features,
         email: "preview@example.com",
         firstName: params.firstName,
-        unsubscribeUrl: `https://deltalytix.app/api/email/unsubscribe?email=${encodeURIComponent("preview@example.com")}`
+        unsubscribeUrl: `https://trades.thekavin.com/api/email/unsubscribe?email=${encodeURIComponent("preview@example.com")}`
       })
     )
 

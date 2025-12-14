@@ -43,7 +43,7 @@ export async function saveChat(messages: UIMessage[]): Promise<Mood | null> {
     return msg
   })
 
-  console.log('Messages', JSON.stringify(textOnlyMessages))
+  // Intentionally no verbose logging here (message payloads can be large and noisy)
   // Try to find existing mood entry for today
   const existingMood = await prisma.mood.findFirst({
     where: {

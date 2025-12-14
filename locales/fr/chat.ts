@@ -24,6 +24,11 @@ export default {
         url: "URL",
         writeMessage: "Écrivez un message...",
         aiThinking: "L'IA réfléchit...",
+        tool: {
+            calling: "Appel de {toolName}...",
+            preparing: "Préparation de {toolName}...",
+            completed: "Terminé : {toolName}",
+        },
         chart: {
             generating: "Génération du graphique d'équité...",
             noData: "Aucune donnée disponible pour la génération du graphique",

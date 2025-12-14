@@ -1,7 +1,7 @@
-import { openai } from "@ai-sdk/openai";
 import { streamObject } from "ai";
 import { NextRequest } from "next/server";
 import { mappingSchema } from "./schema";
+import { getPreferredModelForCurrentUser } from '@/lib/ai/user-model'
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -18,8 +18,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const model = await getPreferredModelForCurrentUser({
+      purpose: 'analysis',
+      fallbackOpenAiModelId: 'gpt-4o-mini-2024-07-18',
+    })
+
     const result = streamObject({
-      model: openai("gpt-4o-mini-2024-07-18"),
+      model,
       schema: mappingSchema,
       temperature: 1,
       onFinish: (result) => {

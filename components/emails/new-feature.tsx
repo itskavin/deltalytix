@@ -83,16 +83,16 @@ export default function NewsletterEmail({
               <Section className="text-center">
                 <Button 
                   className="bg-black text-white text-sm px-6 py-2.5 rounded-md font-medium box-border"
-                  href="https://deltalytix.app/dashboard"
+                  href="https://trades.thekavin.com/dashboard"
                 >
                   Accéder à mon tableau de bord →
                 </Button>
               </Section>
 
               <Text className="text-gray-800 mt-8 mb-4">
-                Hugo DEMENEZ
+                Kavin
                 <br />
-                <span className="text-gray-600">Fondateur de Deltalytix</span>
+                <span className="text-gray-600">trades.thekavin.com</span>
               </Text>
 
               <Hr className="border-gray-200 my-8" />

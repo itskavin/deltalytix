@@ -78,7 +78,7 @@ export default function MissingYouEmail({
   const lang = language === "en" ? "en" : "fr";
   const t = content[lang];
   const unsubscribeUrl = email
-    ? `https://deltalytix.app/api/email/unsubscribe?email=${encodeURIComponent(email)}`
+    ? `https://trades.thekavin.com/api/email/unsubscribe?email=${encodeURIComponent(email)}`
     : '#';
 
   return (
@@ -177,16 +177,16 @@ export default function MissingYouEmail({
               <Section className="text-center mb-8">
                 <Button
                   className="bg-[#3b82f6] text-white text-sm px-[24px] py-[10px] rounded-[4px] font-medium box-border"
-                  href="https://deltalytix.app/authentication"
+                  href="https://trades.thekavin.com/authentication"
                 >
                   {t.importButton}
                 </Button>
               </Section>
 
               <Text className="text-gray-800 mt-8 mb-4">
-                Hugo DEMENEZ
+                Kavin
                 <br />
-                <span className="text-gray-600">{t.founder}</span>
+                <span className="text-gray-600">trades.thekavin.com</span>
               </Text>
 
               <Hr className="border-gray-200 my-8" />
