@@ -14,10 +14,12 @@ const I18nMiddleware = createI18nMiddleware({
 })
 
 async function updateSession(request: NextRequest) {
-  // Create a proper NextResponse first
+  // Create a new request with potentially modified headers
+  const requestHeaders = new Headers(request.headers)
+  
   const response = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: requestHeaders,
     },
   })
 
@@ -77,12 +79,19 @@ async function updateSession(request: NextRequest) {
 
   // Add user info to headers only if user exists
   if (user && !error) {
+    // Set on both request and response headers for maximum compatibility
+    requestHeaders.set("x-user-id", user.id)
+    requestHeaders.set("x-user-email", user.email || "")
+    requestHeaders.set("x-auth-status", "authenticated")
+    
     response.headers.set("x-user-id", user.id)
     response.headers.set("x-user-email", user.email || "")
     response.headers.set("x-auth-status", "authenticated")
   } else {
+    requestHeaders.set("x-auth-status", "unauthenticated")
     response.headers.set("x-auth-status", "unauthenticated")
     if (error) {
+      requestHeaders.set("x-auth-error", (error as any).message || "Unknown error")
       response.headers.set("x-auth-error", (error as any).message || "Unknown error")
     }
   }

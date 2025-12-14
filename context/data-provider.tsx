@@ -652,6 +652,19 @@ export const DataProvider: React.FC<{
       } = await supabase.auth.getUser();
 
       if (!user?.id) {
+        // Clear all user-specific state on logout
+        setSupabaseUser(null);
+        setUser(null);
+        setTrades([]);
+        setAccounts([]);
+        setGroups([]);
+        setTags([]);
+        setMoods([]);
+        setEvents([]);
+        setTickDetails([]);
+        setSubscription(null);
+        setDashboardLayout(null);
+        
         await signOut();
         setIsLoading(false);
         return;
@@ -1655,14 +1668,17 @@ export const DataProvider: React.FC<{
 
   const saveDashboardLayout = useCallback(
     async (layout: PrismaDashboardLayout) => {
-      if (!supabaseUser?.id) return;
+      if (!supabaseUser?.id) {
+        console.warn('[saveDashboardLayout] Skipped - user not authenticated yet');
+        return;
+      }
 
       try {
         setDashboardLayout(layout as unknown as DashboardLayoutWithWidgets);
         await saveDashboardLayoutAction(layout);
       } catch (error) {
         console.error("Error saving dashboard layout:", error);
-        throw error;
+        // Don't throw - just log the error to prevent UI disruption
       }
     },
     [supabaseUser?.id, setDashboardLayout]
