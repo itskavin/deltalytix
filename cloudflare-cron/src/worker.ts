@@ -11,7 +11,7 @@ const endpoints = {
   renewTradovate: "/api/cron/renew-tradovate-token",
 } as const
 
-export default {
+const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
     const base = env.VERCEL_BASE_URL?.replace(/\/$/, "")
     if (!base) return new Response("Missing VERCEL_BASE_URL", { status: 500 })
@@ -34,12 +34,15 @@ export default {
 
     const path = allowed.get(task)!
     try {
+      const headers: Record<string, string> = {
+        "User-Agent": "Cloudflare-Worker-Cron",
+      }
+      if (env.CRON_SECRET) {
+        headers.authorization = `Bearer ${env.CRON_SECRET}`
+      }
       const res = await fetch(`${base}${path}`, {
         method: "GET",
-        headers: {
-          "User-Agent": "Cloudflare-Worker-Cron",
-          authorization: env.CRON_SECRET ? `Bearer ${env.CRON_SECRET}` : undefined,
-        },
+        headers,
       })
       const text = await res.text()
       return Response.json({
@@ -91,13 +94,15 @@ export default {
       requests.map(async ({ name, path }) => {
         const url = `${base}${path}`
         try {
+          const headers: Record<string, string> = {
+            "User-Agent": "Cloudflare-Worker-Cron",
+          }
+          if (env.CRON_SECRET) {
+            headers.authorization = `Bearer ${env.CRON_SECRET}`
+          }
           const res = await fetch(url, {
             method: "GET",
-            headers: {
-              "User-Agent": "Cloudflare-Worker-Cron",
-              // For protected cron endpoints, include the bearer secret
-              authorization: env.CRON_SECRET ? `Bearer ${env.CRON_SECRET}` : undefined,
-            },
+            headers,
           })
           if (!res.ok) {
             const text = await res.text()
@@ -111,4 +116,6 @@ export default {
       })
     )
   },
-} satisfies ExportedHandler<Env>
+}
+
+export default worker
