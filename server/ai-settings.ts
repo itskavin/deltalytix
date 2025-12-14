@@ -56,7 +56,7 @@ export async function getAiSettingsAction(): Promise<{
     const parsedProvider = aiProviderSchema.safeParse(settings?.preferredProvider)
 
     return {
-      preferredProvider: parsedProvider.success ? parsedProvider.data : 'openai',
+      preferredProvider: parsedProvider.success ? parsedProvider.data : 'gemini',
       geminiModel: settings?.geminiModel ?? 'gemini-flash-latest',
       hasGeminiApiKey: Boolean(settings?.geminiApiKeyEncrypted),
       ollamaHostUrl: settings?.ollamaHostUrl ?? '',
@@ -66,7 +66,7 @@ export async function getAiSettingsAction(): Promise<{
     // If the migration hasn't been applied yet (table missing), fall back to defaults.
     console.error('Error loading AI settings:', error)
     return {
-      preferredProvider: 'openai',
+      preferredProvider: 'gemini',
       geminiModel: 'gemini-flash-latest',
       hasGeminiApiKey: false,
       ollamaHostUrl: '',
@@ -135,7 +135,7 @@ export async function upsertAiSettingsAction(input: z.input<typeof upsertSchema>
       ) VALUES (
         ${id},
         ${authUserId},
-        ${data.preferredProvider},
+        ${data.preferredProvider}::"AiProvider",
         ${nextGeminiApiKeyEncrypted},
         ${geminiModel},
         ${nextOllamaHostUrl},
@@ -144,7 +144,7 @@ export async function upsertAiSettingsAction(input: z.input<typeof upsertSchema>
         ${now}
       )
       ON CONFLICT ("authUserId") DO UPDATE SET
-        "preferredProvider" = EXCLUDED."preferredProvider",
+        "preferredProvider" = EXCLUDED."preferredProvider"::text::"AiProvider",
         "geminiApiKeyEncrypted" = EXCLUDED."geminiApiKeyEncrypted",
         "geminiModel" = EXCLUDED."geminiModel",
         "ollamaHostUrl" = EXCLUDED."ollamaHostUrl",

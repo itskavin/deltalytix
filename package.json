@@ -156,6 +156,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251213.0",
     "@tailwindcss/postcss": "^4.1.16",
     "@types/ms": "^2.1.0",
     "@types/node": "^20.19.23",

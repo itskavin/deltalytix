@@ -4,8 +4,8 @@ export default {
         sections: {
             companyInfo: {
                 title: "1. Company Information",
-                content: "Deltalytix is owned and operated by Kavin, operating as a sole proprietorship.",
-                contact: "Contact: "
+                content: "Deltalytix is owned and operated by Hugo DEMENEZ, operating as a sole proprietorship. This deployment is a self-hosted copy maintained by Kavin, who does not own or work for Deltalytix. Kavin may charge certain members to cover server and maintenance costs for this instance.",
+                contact: "Contact: contact@deltalytix.app"
             },
             services: {
                 title: "2. Services",

@@ -4,8 +4,8 @@ export default {
         sections: {
             companyInfo: {
                 title: "1. Informations sur l'entreprise",
-                content: "Deltalytix est détenu et exploité par Kavin, opérant en tant qu'entreprise individuelle.",
-                contact: "Contact : "
+                content: "Deltalytix est détenu et exploité par Hugo DEMENEZ, exerçant en entreprise individuelle. Cette instance est une copie auto-hébergée et maintenue par Kavin, qui n'est ni propriétaire ni employé de Deltalytix. Kavin peut facturer certains membres pour couvrir les coûts de serveur et de maintenance de cette instance.",
+                contact: "Contact : contact@deltalytix.app"
             },
             services: {
                 title: "2. Services",

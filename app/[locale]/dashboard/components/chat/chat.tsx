@@ -22,6 +22,10 @@ import { useChatStore } from "@/store/chat-store"
 import { DotStream } from 'ldrs/react'
 import 'ldrs/react/DotStream.css'
 import { getChatHistoryAction, resetChatHistoryAction, saveChatHistoryAction } from "@/server/chat-history"
+import { getAiSettingsAction } from "@/server/ai-settings"
+import Link from "next/link"
+import { Settings } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 // Types
 interface ChatWidgetProps {
@@ -157,6 +161,8 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
     const { messages: storedMessages, setMessages: setStoredMessages } = useChatStore()
     const [isLoadingMessages, setIsLoadingMessages] = useState(true)
     const lastUserIdRef = useRef<string | null>(null)
+    const [hasGeminiApiKey, setHasGeminiApiKey] = useState(true)
+    const [isCheckingApiKey, setIsCheckingApiKey] = useState(false)
 
     // Using use-stick-to-bottom for scroll management
 
@@ -196,6 +202,10 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
 
             setIsLoadingMessages(true)
             try {
+                // Check API key first
+                const settings = await getAiSettingsAction()
+                setHasGeminiApiKey(settings.hasGeminiApiKey)
+
                 const history = await getChatHistoryAction()
 
                 // Hydrate any legacy messages that may not have parts.
@@ -226,6 +236,7 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
         }
     }, [user?.id])
 
+    // Check if Gemini API key is configured
     const [input, setInput] = useState("")
     const [files, setFiles] = useState<{ type: 'file'; mediaType: string; url: string }[]>([])
 
@@ -577,17 +588,50 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
                             </p>
                         </div>
                             <Button
-                            onClick={() => {
-                                setIsStarted(true)
-                                setHideFirstMessage(true)
-                                // Send a greeting message to trigger AI response
-                                sendMessage({ text: t('chat.greeting.message') })
+                            onClick={async () => {
+                                setIsCheckingApiKey(true)
+                                try {
+                                    const settings = await getAiSettingsAction()
+                                    if (!settings.hasGeminiApiKey) {
+                                        // Don't start the chat, show warning instead
+                                        setHasGeminiApiKey(false)
+                                        setIsCheckingApiKey(false)
+                                        return
+                                    }
+                                    setHasGeminiApiKey(true)
+                                    setIsStarted(true)
+                                    setHideFirstMessage(true)
+                                    // Send a greeting message to trigger AI response
+                                    sendMessage({ text: t('chat.greeting.message') })
+                                } finally {
+                                    setIsCheckingApiKey(false)
+                                }
                             }}
                             size="lg"
                             className="w-full text-sm sm:text-base animate-in fade-in zoom-in"
+                            disabled={isCheckingApiKey}
                         >
-                            {t('chat.overlay.startButton')}
+                            {isCheckingApiKey ? 'Checking...' : t('chat.overlay.startButton')}
                         </Button>
+                    </div>
+                </div>
+            )}
+            {!isStarted && !hasGeminiApiKey && !isCheckingApiKey && !isLoadingMessages && (
+                <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+                    <div className="w-full max-w-md space-y-4">
+                        <Alert variant="destructive">
+                            <Settings className="h-4 w-4" />
+                            <AlertTitle>{t('chat.apiKeyWarning.title')}</AlertTitle>
+                            <AlertDescription className="space-y-3">
+                                <p>{t('chat.apiKeyWarning.description')}</p>
+                                <Link href={`/${locale}/dashboard/ai-settings`}>
+                                    <Button variant="default" className="w-full">
+                                        <Settings className="h-4 w-4 mr-2" />
+                                        {t('chat.apiKeyWarning.settingsButton')}
+                                    </Button>
+                                </Link>
+                            </AlertDescription>
+                        </Alert>
                     </div>
                 </div>
             )}

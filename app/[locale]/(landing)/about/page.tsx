@@ -1,18 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Code, LineChart, GraduationCap } from "lucide-react"
+import { BookOpen, Code, LineChart } from "lucide-react"
 
 export default function AboutPage() {
   const founderSkills = [
-    { name: "Order Book Trading", icon: <BookOpen className="w-4 h-4" /> },
-    { name: "Volume Profile", icon: <LineChart className="w-4 h-4" /> },
+    { name: "ICT Concepts", icon: <BookOpen className="w-4 h-4" /> },
     { name: "Computer Science", icon: <Code className="w-4 h-4" /> },
-    { name: "Quantitative Finance", icon: <GraduationCap className="w-4 h-4" /> },
+    { name: "Trading Fundamentals", icon: <LineChart className="w-4 h-4" /> }
   ]
 
   return (
     <div className="px-4 py-12 bg-background text-foreground">
-      <h1 className="text-4xl font-bold text-center mb-8">About Deltalytix</h1>
+      <h1 className="text-4xl font-bold text-center mb-8">About This Deltalytix Instance</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Card className="bg-card">
@@ -21,28 +20,21 @@ export default function AboutPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              At Deltalytix, we&apos;re on a mission to empower traders with advanced analytics and AI-driven insights. 
-              Our platform is designed to help you understand your trading patterns, optimize your strategies, 
-              and ultimately become a better trader through comprehensive backtesting and analysis of your real track record.
+              This deployment is a self-hosted copy of the open-source Deltalytix project, maintained by Kavin for personal use and a small community. It follows the spirit of the original platform by providing advanced analytics and AI-driven insights, while remaining independent from the official Deltalytix team.
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-card">
           <CardHeader>
-            <CardTitle className="text-2xl">The Founder&apos;s Story</CardTitle>
+            <CardTitle className="text-2xl">About Kavin</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              With over 5 years of trading experience, our founder has mastered order book trading with a specific 
-              focus on volume profile. Combining a strong background in engineering, computer science, and financial 
-              markets, along with a master&apos;s degree in quantitative finance, he identified a gap in the market for 
-              a tool that could truly help traders understand and improve their performance.
+              Kavin has about one year of trading experience with a focus on ICT concepts, reinforced by a background in computer science. Hosting and maintaining this copy of Deltalytix allows him to experiment with strategy tracking and share the tools with others.
             </p>
             <p className="text-muted-foreground">
-              This unique blend of skills and experience led to the creation of Deltalytix - a platform that 
-              reflects the needs of serious traders looking to gain deeper insights into their trading patterns 
-              and performance.
+              This instance is not owned by or affiliated with the official Deltalytix team; it is a community-focused deployment operated independently by Kavin.
             </p>
           </CardContent>
         </Card>
@@ -69,11 +61,11 @@ export default function AboutPage() {
           </CardHeader>
           <CardContent>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-              <li>Built by a trader, for traders</li>
-              <li>Advanced analytics powered by real-world trading experience</li>
-              <li>Comprehensive backtesting using your actual trade history</li>
-              <li>AI-driven insights to improve your trading psychology</li>
-              <li>Tailored to serious traders looking to elevate their performance</li>
+              <li>Self-hosted copy of the open-source Deltalytix project</li>
+              <li>Maintained by Kavin to support personal learning and community members</li>
+              <li>Advanced analytics and AI insights preserved from the original platform</li>
+              <li>Transparent about independence from the official Deltalytix team</li>
+              <li>Available to members who may contribute fees to cover hosting and maintenance</li>
             </ul>
           </CardContent>
         </Card>

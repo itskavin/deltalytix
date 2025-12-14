@@ -47,6 +47,11 @@ export default {
         },
         greeting: {
             message: "Hello! Please greet me and provide an overview of my current trading data for this week and today."
+        },
+        apiKeyWarning: {
+            title: "API Key Required",
+            description: "You need to configure your Gemini API key to use the AI Assistant. Click the button below to set it up in your AI settings.",
+            settingsButton: "Go to AI Settings"
         }
     },
 } as const;

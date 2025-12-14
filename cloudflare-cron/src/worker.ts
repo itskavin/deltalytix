@@ -1,3 +1,5 @@
+import type { ScheduledEvent } from '@cloudflare/workers-types'
+
 export interface Env {
   VERCEL_BASE_URL: string
   CRON_SECRET: string
@@ -55,7 +57,7 @@ const worker = {
       return Response.json({ ok: false, error: String(err) }, { status: 500 })
     }
   },
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledEvent, env: Env): Promise<void> {
     const base = env.VERCEL_BASE_URL?.replace(/\/$/, "")
     if (!base) {
       console.error("VERCEL_BASE_URL is not set")

@@ -46,7 +46,10 @@ export default {
             }
         },
         greeting: {
-            message: "Bonjour ! Veuillez me saluer et me fournir un aperçu de mes données de trading actuelles pour cette semaine et aujourd'hui."
-        }
+            message: "Bonjour ! Veuillez me saluer et me fournir un aperçu de mes données de trading actuelles pour cette semaine et aujourd'hui."        },
+        apiKeyWarning: {
+            title: "Clé API Requise",
+            description: "Vous devez configurer votre clé API Gemini pour utiliser l'Assistant IA. Cliquez sur le bouton ci-dessous pour la configurer dans vos paramètres IA.",
+            settingsButton: "Aller aux Paramètres IA"        }
     },
 } as const;

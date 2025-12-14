@@ -18,7 +18,7 @@ import { toast } from 'sonner'
 
 import { getAiSettingsAction, getOllamaModelsAction, upsertAiSettingsAction } from '@/server/ai-settings'
 
-type Provider = 'openai' | 'gemini' | 'ollama'
+type Provider = 'gemini' | 'ollama' | 'openai'
 
 const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-2.5-pro', 'gemini-3.0-pro'] as const
 
@@ -30,7 +30,7 @@ export default function AiSettingsPage() {
   const t = useI18n()
   const [isPending, startTransition] = useTransition()
 
-  const [preferredProvider, setPreferredProvider] = useState<Provider>('openai')
+  const [preferredProvider, setPreferredProvider] = useState<Provider>('gemini')
   const [geminiModel, setGeminiModel] = useState<GeminiModel>('gemini-flash-latest')
   const [geminiApiKey, setGeminiApiKey] = useState('')
   const [hasGeminiApiKey, setHasGeminiApiKey] = useState(false)
