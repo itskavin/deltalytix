@@ -23,8 +23,14 @@ export async function GET(request: Request) {
 
   // Redirect to the decoded 'next' URL if it exists, otherwise to the homepage
   let decodedNext: string | null = null;
+  const defaultLocale = locale || 'en'
+  
   if (next) {
     decodedNext = decodeURIComponent(next)
+    // Ensure locale is in the path for relative URLs
+    if (decodedNext.startsWith('/') && !decodedNext.startsWith(`/${defaultLocale}/`)) {
+      decodedNext = `/${defaultLocale}${decodedNext}`
+    }
   }
   if (code) {
     try {
@@ -37,8 +43,8 @@ export async function GET(request: Request) {
           const forwardedHost = request.headers.get('x-forwarded-host')
           const isLocalEnv = process.env.NODE_ENV === 'development'
           const baseUrl = isLocalEnv
-            ? `${origin}/dashboard/settings`
-            : `https://${forwardedHost || origin}/dashboard/settings`
+            ? `${origin}/${defaultLocale}/dashboard/settings`
+            : `https://${forwardedHost || origin}/${defaultLocale}/dashboard/settings`
           const redirectUrl = `${baseUrl}?passwordReset=true`
           return NextResponse.redirect(redirectUrl)
         }
@@ -48,8 +54,8 @@ export async function GET(request: Request) {
           const forwardedHost = request.headers.get('x-forwarded-host')
           const isLocalEnv = process.env.NODE_ENV === 'development'
           const baseUrl = isLocalEnv
-            ? `${origin}/dashboard/settings`
-            : `https://${forwardedHost || origin}/dashboard/settings`
+            ? `${origin}/${defaultLocale}/dashboard/settings`
+            : `https://${forwardedHost || origin}/${defaultLocale}/dashboard/settings`
           const redirectUrl = `${baseUrl}?linked=true`
           return NextResponse.redirect(redirectUrl)
         }
@@ -67,22 +73,24 @@ export async function GET(request: Request) {
 
         const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
         const isLocalEnv = process.env.NODE_ENV === 'development'
+        const dashboardPath = `/${defaultLocale}/dashboard`
+        
         if (isLocalEnv) {
           // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
           if (decodedNext) {
             return NextResponse.redirect(new URL(decodedNext, origin))
           }
-          return NextResponse.redirect(`${origin}${next ?? '/dashboard'}`)
+          return NextResponse.redirect(`${origin}${next ?? dashboardPath}`)
         } else if (forwardedHost) {
           if (decodedNext) {
             return NextResponse.redirect(new URL(decodedNext, `https://${forwardedHost}`))
           }
-          return NextResponse.redirect(`https://${forwardedHost}${next ?? '/dashboard'}`)
+          return NextResponse.redirect(`https://${forwardedHost}${next ?? dashboardPath}`)
         } else {
           if (decodedNext) {
             return NextResponse.redirect(new URL(decodedNext, origin))
           }
-          return NextResponse.redirect(`${origin}${next ?? '/dashboard'}`)
+          return NextResponse.redirect(`${origin}${next ?? dashboardPath}`)
         }
       } else {
         console.log('Auth callback error:', error)
