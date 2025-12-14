@@ -1,8 +1,8 @@
 import { tool } from "ai";
 import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
 import { z } from 'zod/v3';
 import { AccountAnalysisSchema, type AccountAnalysis } from './get-account-performance';
+import { getPreferredModelForCurrentUser } from '@/lib/ai/user-model';
 
 // Define the simplified schema for the structured analysis output (4 parts only)
 const AnalysisOutputSchema = z.object({
@@ -11,6 +11,103 @@ const AnalysisOutputSchema = z.object({
   improvements: z.array(z.string()).describe('Top 3-5 areas that need attention'),
   recommendations: z.array(z.string()).describe('Top 3-5 actionable recommendations')
 });
+
+type RiskLevel = 'low' | 'medium' | 'high' | string;
+
+function calculatePortfolioRisk(accounts: Array<{ riskLevel: RiskLevel }> | undefined): string {
+  const order: Record<string, number> = { low: 0, medium: 1, high: 2 };
+  if (!accounts?.length) return 'unknown';
+  let max = -1;
+  for (const a of accounts) {
+    const v = order[String(a.riskLevel ?? '').toLowerCase()] ?? -1;
+    if (v > max) max = v;
+  }
+  if (max === 2) return 'high';
+  if (max === 1) return 'medium';
+  if (max === 0) return 'low';
+  return 'unknown';
+}
+
+function getBestWorstAccountNumbers(accounts: Array<{ accountNumber: string; netPnL: number }> | undefined): {
+  bestAccount: string;
+  worstAccount: string;
+} {
+  if (!accounts?.length) return { bestAccount: 'N/A', worstAccount: 'N/A' };
+  let best = accounts[0];
+  let worst = accounts[0];
+  for (const a of accounts) {
+    if (a.netPnL > best.netPnL) best = a;
+    if (a.netPnL < worst.netPnL) worst = a;
+  }
+  return { bestAccount: best.accountNumber, worstAccount: worst.accountNumber };
+}
+
+function buildFallbackStructuredAnalysis(args: {
+  locale: string;
+  username?: string;
+  accountData: AccountAnalysis;
+}): z.infer<typeof AnalysisOutputSchema> {
+  const { locale, accountData } = args;
+  const totalAccounts = accountData?.accounts?.length ?? 0;
+  const totalPortfolioValue = accountData?.totalPortfolioValue ?? 0;
+  const totalTrades = accountData?.accounts?.reduce((sum, a) => sum + (a.totalTrades ?? 0), 0) ?? 0;
+
+  const risk = calculatePortfolioRisk(accountData?.accounts);
+  const { bestAccount, worstAccount } = getBestWorstAccountNumbers(
+    (accountData?.accounts ?? []).map((a) => ({ accountNumber: a.accountNumber, netPnL: a.netPnL })),
+  );
+
+  // Keep this intentionally simple and always non-empty.
+  const summaryEn =
+    totalAccounts === 0
+      ? 'No account data was available to analyze. Please sync or import trades and try again.'
+      : `Portfolio net PnL is $${totalPortfolioValue.toLocaleString()} across ${totalAccounts} account(s) (${totalTrades} trade(s)). Current portfolio risk is classified as ${risk}. Best account: ${bestAccount}.`;
+
+  const summaryFr =
+    totalAccounts === 0
+      ? "Aucune donnée de compte n'était disponible pour l'analyse. Veuillez synchroniser ou importer des trades puis réessayer."
+      : `Le PnL net du portefeuille est de $${totalPortfolioValue.toLocaleString()} sur ${totalAccounts} compte(s) (${totalTrades} trade(s)). Le risque est classé ${risk}. Meilleur compte : ${bestAccount}.`;
+
+  const summary = locale === 'fr' ? summaryFr : summaryEn;
+
+  const strengths = totalTrades <= 1
+    ? [
+        'Positive initial result, but the sample size is too small for statistical confidence.',
+        'Costs (commissions) are tracked, enabling net performance evaluation.',
+        'Account-level metrics are available for comparison as more trades accrue.',
+      ]
+    : [
+        'Portfolio has a positive net PnL overall.',
+        'Clear instrument and account-level breakdown is available.',
+        'Win/loss distribution can be reviewed per account.',
+      ];
+
+  const improvements = totalTrades <= 1
+    ? [
+        'Increase the trade sample size to make metrics like Profit Factor and Sharpe meaningful.',
+        'Track drawdowns over time; a 0% drawdown with 1 trade is not representative.',
+        'Validate risk sizing rules per trade (stop distance, max loss, daily loss limit).',
+      ]
+    : [
+        'Reduce drawdown variability and improve consistency across accounts.',
+        'Confirm that profit factor stays > 1.0 after costs.',
+        'Review risk concentration in the highest-risk accounts.',
+      ];
+
+  const recommendations = totalTrades <= 1
+    ? [
+        'Log 30–50 additional trades before relying on advanced statistics.',
+        'Set a max loss per trade and max daily loss rule, then audit adherence weekly.',
+        'Separate analysis by instrument/session once you have enough volume.',
+      ]
+    : [
+        'Create a playbook for your top setups and measure expectancy per setup.',
+        'Cap per-account risk and rebalance capital toward the most consistent account.',
+        'Run a weekly review: biggest loss, rule violations, and commission impact.',
+      ];
+
+  return { summary, strengths, improvements, recommendations };
+}
 
 export const generateAnalysisComponent = tool({
   description: 'Generate AI-powered text analysis of account performance data. This provides detailed insights and recommendations based on the account data.',
@@ -32,6 +129,15 @@ export const generateAnalysisComponent = tool({
     
     // Generate timestamp
     const now = new Date().toISOString();
+
+    const dataSummary = {
+      totalAccounts: accountData?.accounts?.length || 0,
+      totalPortfolioValue: accountData?.totalPortfolioValue || 0,
+      portfolioRisk: calculatePortfolioRisk(accountData?.accounts),
+      ...getBestWorstAccountNumbers(
+        (accountData?.accounts ?? []).map((a) => ({ accountNumber: a.accountNumber, netPnL: a.netPnL })),
+      ),
+    };
     
     // Create a comprehensive prompt for AI analysis
     const analysisPrompt = `# Trading Account Performance Analysis
@@ -80,9 +186,14 @@ Be concise and actionable. Maximum 3-5 points per section.
 Please provide a comprehensive structured analysis that would be valuable for a trader looking to improve their performance.`;
 
     try {
+      const model = await getPreferredModelForCurrentUser({
+        purpose: 'analysis',
+        fallbackOpenAiModelId: 'gpt-4o-mini',
+      });
+
       // Generate structured AI analysis using generateObject
       const { object } = await generateObject({
-        model: openai('gpt-5-nano-2025-08-07'),
+        model,
         prompt: analysisPrompt,
         schema: AnalysisOutputSchema,
       });
@@ -93,28 +204,17 @@ Please provide a comprehensive structured analysis that would be valuable for a 
         username,
         generatedAt: now,
         structuredAnalysis: object,
-        dataSummary: {
-          totalAccounts: accountData?.accounts?.length || 0,
-          totalPortfolioValue: accountData?.totalPortfolioValue || 0,
-          portfolioRisk: 'unknown',
-          bestAccount: 'N/A',
-          worstAccount: 'N/A'
-        },
+        dataSummary,
       };
     } catch (error) {
       console.error('Error generating structured AI analysis:', error);
+      const fallback = buildFallbackStructuredAnalysis({ locale, username, accountData });
       return {
         locale,
         username,
         generatedAt: now,
-        structuredAnalysis: {
-          summary: locale === 'fr' 
-            ? 'Erreur lors de la génération de l\'analyse. Veuillez réessayer.'
-            : 'Error generating analysis. Please try again.',
-          strengths: [],
-          improvements: [],
-          recommendations: []
-        },
+        structuredAnalysis: fallback,
+        dataSummary,
         error: true,
       };
     }

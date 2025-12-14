@@ -163,6 +163,7 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
     const lastUserIdRef = useRef<string | null>(null)
     const [hasGeminiApiKey, setHasGeminiApiKey] = useState(true)
     const [isCheckingApiKey, setIsCheckingApiKey] = useState(false)
+    const LOCAL_CHAT_KEY_PREFIX = 'deltalytix:chat-history:'
 
     // Using use-stick-to-bottom for scroll management
 
@@ -186,12 +187,24 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
     }, [])
 
     useEffect(() => {
-        // When account changes, clear local UI state first to avoid showing the previous user's chat.
+        let cancelled = false
+
         const currentUserId = user?.id ?? null
+
+        // When user changes, clear local UI state so we don't show the previous user's chat.
         if (lastUserIdRef.current !== currentUserId) {
             lastUserIdRef.current = currentUserId
             setStoredMessages([])
             setIsStarted(false)
+        }
+
+        const hydrateLegacy = (history: any[]) => {
+            return (history ?? []).map((msg: any) => {
+                if (!msg?.parts && msg?.content) {
+                    return { ...msg, parts: [{ type: 'text', text: msg.content }] }
+                }
+                return msg
+            })
         }
 
         const load = async () => {
@@ -201,40 +214,56 @@ export default function ChatWidget({ size = "large" }: ChatWidgetProps) {
             }
 
             setIsLoadingMessages(true)
+
+            // 1) Local hydration first (fast)
             try {
-                // Check API key first
+                const raw = window.localStorage.getItem(`${LOCAL_CHAT_KEY_PREFIX}${currentUserId}`)
+                if (raw) {
+                    const parsed = JSON.parse(raw)
+                    const hydrated = hydrateLegacy(Array.isArray(parsed) ? parsed : [])
+                    if (!cancelled && hydrated.length > 0) {
+                        setStoredMessages(hydrated as UIMessage[])
+                        setIsStarted(true)
+                    }
+                }
+            } catch {
+                // Ignore local cache failures
+            }
+
+            // 2) Cloud hydration (source of truth)
+            try {
                 const settings = await getAiSettingsAction()
-                setHasGeminiApiKey(settings.hasGeminiApiKey)
+                if (!cancelled) setHasGeminiApiKey(settings.hasGeminiApiKey)
 
                 const history = await getChatHistoryAction()
+                const hydrated = hydrateLegacy(history as any[])
 
-                // Hydrate any legacy messages that may not have parts.
-                const hydrated = (history ?? []).map((msg: any) => {
-                    if (!msg?.parts && msg?.content) {
-                        return { ...msg, parts: [{ type: 'text', text: msg.content }] }
-                    }
-                    return msg
-                })
-
-                setStoredMessages(hydrated as UIMessage[])
-                if (hydrated.length > 0) {
+                if (!cancelled && hydrated.length > 0) {
+                    setStoredMessages(hydrated as UIMessage[])
                     setIsStarted(true)
                 }
             } catch (e) {
                 console.error('Failed to load chat history:', e)
-                setStoredMessages([])
             } finally {
-                setIsLoadingMessages(false)
+                if (!cancelled) setIsLoadingMessages(false)
             }
         }
 
-        // Only fetch from server when we don't already have messages in memory.
-        if (storedMessages.length === 0) {
-            void load()
-        } else {
-            setIsLoadingMessages(false)
+        void load()
+        return () => {
+            cancelled = true
         }
-    }, [user?.id])
+    }, [user?.id, setStoredMessages])
+
+    useEffect(() => {
+        const currentUserId = user?.id
+        if (!currentUserId) return
+        try {
+            window.localStorage.setItem(`${LOCAL_CHAT_KEY_PREFIX}${currentUserId}`, JSON.stringify(storedMessages))
+        } catch {
+            // Ignore storage quota / privacy mode issues
+        }
+    }, [storedMessages, user?.id])
 
     // Check if Gemini API key is configured
     const [input, setInput] = useState("")

@@ -27,6 +27,7 @@ import PdfProcessing from './ibkr-pdf/pdf-processing'
 import AtasFileUpload from './atas/atas-file-upload'
 import { generateTradeHash } from '@/lib/utils'
 import { createTradeWithDefaults } from '@/lib/trade-factory'
+import { v5 as uuidv5 } from 'uuid'
 
 type ColumnConfig = {
   [key: string]: {
@@ -69,6 +70,27 @@ export default function ImportButton() {
   const { refreshTrades, updateTrades } = useData()
   const t = useI18n()
 
+  const generateTradeUUIDClient = useCallback((trade: Partial<Trade>, userId: string) => {
+    const TRADE_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
+    const tradeSignature = [
+      userId,
+      trade.accountNumber || '',
+      trade.instrument || '',
+      trade.entryDate || '',
+      trade.closeDate || '',
+      trade.entryPrice || '',
+      trade.closePrice || '',
+      (trade.quantity || 0).toString(),
+      trade.entryId || '',
+      trade.closeId || '',
+      (trade.timeInPosition || 0).toString(),
+      trade.side || '',
+      (trade.pnl || 0).toString(),
+      (trade.commission || 0).toString(),
+    ].join('|')
+    return uuidv5(tradeSignature, TRADE_NAMESPACE)
+  }, [])
+
 
   const handleSave = useCallback(async () => {
     console.log('[ImportButton] First:', processedTrades)
@@ -78,6 +100,8 @@ export default function ImportButton() {
       })
       return
     }
+
+    const existingTradeIds = new Set(trades.map((tr) => tr.id))
 
     setIsSaving(true)
     try {
@@ -103,7 +127,28 @@ export default function ImportButton() {
       }
 
       console.log('[ImportButton] Saving trades:', newTrades)
-      const result = await saveTradesAction(newTrades)
+
+      // Manual Entry can be re-opened as a "viewer" for already-entered trades.
+      // Filter out trades that already exist so we don't show a duplicate error when nothing new was added.
+      let tradesToSave = newTrades
+      if (importType === 'manual-entry') {
+        const userId = supabaseUser.id
+        tradesToSave = newTrades.filter((trade) => {
+          const deterministicId = generateTradeUUIDClient(trade, userId)
+          return !existingTradeIds.has(deterministicId)
+        })
+
+        if (tradesToSave.length === 0) {
+          toast.success(t('import.success'), {
+            description: t('import.successDescription', { numberOfTradesAdded: 0 }),
+          })
+          setIsOpen(false)
+          resetImportState()
+          return
+        }
+      }
+
+      const result = await saveTradesAction(tradesToSave)
       // Update the trades now because it shows a toast, and requires some time before showing the trades
       await refreshTrades()
       if (result.error) {

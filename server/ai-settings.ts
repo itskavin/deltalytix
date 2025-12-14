@@ -76,9 +76,8 @@ export async function getAiSettingsAction(): Promise<{
 }
 
 export async function upsertAiSettingsAction(input: z.input<typeof upsertSchema>) {
-  try {
-    const authUserId = await getUserId()
-    const data = upsertSchema.parse(input)
+  const authUserId = await getUserId()
+  const data = upsertSchema.parse(input)
 
   const ollamaHostUrl = data.ollamaHostUrl ? normalizeHostUrl(data.ollamaHostUrl) : undefined
   const geminiModel = data.geminiModel ?? 'gemini-flash-latest'
@@ -167,34 +166,38 @@ export async function getOllamaModelsAction(ollamaHostUrl: string): Promise<{ mo
     void authUserId
 
     const base = normalizeHostUrl(ollamaHostUrl)
-  if (!base) return { models: [] }
+    if (!base) return { models: [] }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 7000)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 7000)
 
-  try {
-    const res = await fetch(`${base}/api/tags`, {
-      method: 'GET',
-      signal: controller.signal,
-      headers: { 'Content-Type': 'application/json' },
-      cache: 'no-store',
-    })
+    try {
+      const res = await fetch(`${base}/api/tags`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+      })
 
-    if (!res.ok) {
+      if (!res.ok) {
+        return { models: [] }
+      }
+
+      const json = (await res.json()) as { models?: Array<{ name?: string }> }
+      const models = (json.models ?? [])
+        .map(m => (m.name ?? '').trim())
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b))
+
+      return { models }
+    } catch (error) {
+      console.error('Error fetching Ollama models:', error)
       return { models: [] }
+    } finally {
+      clearTimeout(timeout)
     }
-
-    const json = (await res.json()) as { models?: Array<{ name?: string }> }
-    const models = (json.models ?? [])
-      .map(m => (m.name ?? '').trim())
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b))
-
-    return { models }
   } catch (error) {
-    console.error('Error fetching Ollama models:', error)
+    console.error('Error in getOllamaModelsAction:', error)
     return { models: [] }
-  } finally {
-    clearTimeout(timeout)
   }
 }

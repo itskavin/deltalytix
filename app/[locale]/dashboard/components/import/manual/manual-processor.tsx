@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,10 +43,51 @@ const initialFormData: TradeFormData = {
 
 export default function ManualProcessor({ processedTrades, setProcessedTrades, accountNumbers }: PlatformProcessorProps) {
   const existingTrades = useTradesStore((state => state.trades))
+  const lastHydratedAccountsRef = useRef<string>('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [formData, setFormData] = useState<TradeFormData>(initialFormData)
   const t = useI18n()
+
+  const existingManualTradesForAccounts = useMemo(() => {
+    if (!accountNumbers || accountNumbers.length === 0) return []
+    return existingTrades
+      .filter((trade) => accountNumbers.includes(trade.accountNumber))
+      .filter((trade) => Array.isArray(trade.tags) && trade.tags.includes('manual'))
+      .map((trade) => ({
+        id: trade.id,
+        instrument: trade.instrument,
+        side: trade.side,
+        quantity: trade.quantity,
+        entryPrice: trade.entryPrice,
+        closePrice: trade.closePrice,
+        entryDate: trade.entryDate,
+        closeDate: trade.closeDate,
+        pnl: trade.pnl,
+        timeInPosition: trade.timeInPosition,
+        commission: trade.commission,
+        tags: trade.tags,
+      }))
+  }, [accountNumbers, existingTrades])
+
+  useEffect(() => {
+    const key = (accountNumbers ?? []).slice().sort().join('|')
+    if (processedTrades.length > 0) {
+      // User already has in-session rows; don't override.
+      lastHydratedAccountsRef.current = key
+      return
+    }
+
+    if (existingManualTradesForAccounts.length === 0) {
+      // Trades may not be loaded yet; don't lock the hydration key.
+      return
+    }
+
+    if (lastHydratedAccountsRef.current !== key) {
+      setProcessedTrades(existingManualTradesForAccounts)
+      lastHydratedAccountsRef.current = key
+    }
+  }, [accountNumbers, existingManualTradesForAccounts, processedTrades.length, setProcessedTrades])
 
   const existingCommissions = useMemo(() => {
     const commissions: { [key: string]: number } = {}
