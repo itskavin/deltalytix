@@ -249,6 +249,8 @@ export default {
   "aiSettings.loading": "Loading...",
   "aiSettings.loadError": "Failed to load AI settings",
   "aiSettings.saveError": "Failed to save AI settings",
+  "aiSettings.missingEncryptionKey": "Server is missing ENCRYPTION_KEY. Set it in your environment and try again.",
+  "aiSettings.missingMigration": "AI settings table is missing. Apply Prisma migrations and try again.",
   "aiSettings.ollamaModelsLoaded": "Loaded {count} models",
   "aiSettings.ollamaModelsEmpty": "No models found on this Ollama host",
   "aiSettings.ollamaModelsLoadError": "Failed to load Ollama models",

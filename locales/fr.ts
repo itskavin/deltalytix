@@ -254,6 +254,8 @@ export default {
   "aiSettings.loading": "Chargement...",
   "aiSettings.loadError": "Impossible de charger les paramètres IA",
   "aiSettings.saveError": "Impossible d'enregistrer les paramètres IA",
+  "aiSettings.missingEncryptionKey": "Le serveur n'a pas de ENCRYPTION_KEY. Ajoutez-la à l'environnement puis réessayez.",
+  "aiSettings.missingMigration": "La table des paramètres IA est manquante. Appliquez les migrations Prisma puis réessayez.",
   "aiSettings.ollamaModelsLoaded": "{count} modèles chargés",
   "aiSettings.ollamaModelsEmpty": "Aucun modèle trouvé sur cet hôte Ollama",
   "aiSettings.ollamaModelsLoadError": "Impossible de charger les modèles Ollama",

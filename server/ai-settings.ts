@@ -7,6 +7,10 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import crypto from 'node:crypto'
 
+export type UpsertAiSettingsResult =
+  | { success: true }
+  | { success: false; reason: 'missing_encryption_key' | 'migration_missing' | 'unknown' }
+
 type AiSettingsRow = {
   preferredProvider: 'openai' | 'gemini' | 'ollama'
   geminiModel: string
@@ -24,6 +28,16 @@ const upsertSchema = z.object({
   ollamaHostUrl: z.string().optional(),
   ollamaModel: z.string().optional(),
 })
+
+function isMissingAiSettingsMigration(error: unknown): boolean {
+  const message =
+    typeof error === 'object' && error && 'message' in error
+      ? String((error as { message?: unknown }).message)
+      : String(error)
+
+  // Postgres missing relation errors often contain: relation "AiSettings" does not exist
+  return message.toLowerCase().includes('aisettings') && message.toLowerCase().includes('does not exist')
+}
 
 function normalizeHostUrl(url: string): string {
   const trimmed = url.trim()
@@ -75,18 +89,25 @@ export async function getAiSettingsAction(): Promise<{
   }
 }
 
-export async function upsertAiSettingsAction(input: z.input<typeof upsertSchema>) {
+export async function upsertAiSettingsAction(
+  input: z.input<typeof upsertSchema>
+): Promise<UpsertAiSettingsResult> {
   const authUserId = await getUserId()
   const data = upsertSchema.parse(input)
 
   const ollamaHostUrl = data.ollamaHostUrl ? normalizeHostUrl(data.ollamaHostUrl) : undefined
   const geminiModel = data.geminiModel ?? 'gemini-flash-latest'
 
+  const geminiApiKeyTrimmed = data.geminiApiKey?.trim()
+  if (geminiApiKeyTrimmed && !process.env.ENCRYPTION_KEY) {
+    return { success: false, reason: 'missing_encryption_key' }
+  }
+
   const geminiApiKeyEncrypted =
     data.geminiApiKey === undefined
       ? undefined
-      : data.geminiApiKey.trim()
-        ? encryptSecret(data.geminiApiKey.trim())
+      : geminiApiKeyTrimmed
+        ? encryptSecret(geminiApiKeyTrimmed)
         : null
 
   const now = new Date()
@@ -156,7 +177,12 @@ export async function upsertAiSettingsAction(input: z.input<typeof upsertSchema>
     return { success: true }
   } catch (error) {
     console.error('Error saving AI settings:', error)
-    throw new Error('Failed to save AI settings. Ensure the AiSettings migration has been applied.')
+
+    if (isMissingAiSettingsMigration(error)) {
+      return { success: false, reason: 'migration_missing' }
+    }
+
+    return { success: false, reason: 'unknown' }
   }
 }
 

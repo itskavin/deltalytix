@@ -92,13 +92,27 @@ export default function AiSettingsPage() {
   function onSave() {
     startTransition(async () => {
       try {
-        await upsertAiSettingsAction({
+        const result = await upsertAiSettingsAction({
           preferredProvider,
           geminiModel,
           geminiApiKey: geminiApiKey.trim() ? geminiApiKey.trim() : undefined,
           ollamaHostUrl,
           ollamaModel,
         })
+
+        if (!result.success) {
+          if (result.reason === 'missing_encryption_key') {
+            toast.error(t('aiSettings.missingEncryptionKey'))
+            return
+          }
+          if (result.reason === 'migration_missing') {
+            toast.error(t('aiSettings.missingMigration'))
+            return
+          }
+          toast.error(t('aiSettings.saveError'))
+          return
+        }
+
         setGeminiApiKey('')
         const refreshed = await getAiSettingsAction()
         setHasGeminiApiKey(refreshed.hasGeminiApiKey)
