@@ -23,6 +23,45 @@ interface TradeResponse {
   details?: unknown
 }
 
+async function ensurePrismaUserForAuthUser(user: { id: string; email?: string | null }): Promise<boolean> {
+  try {
+    const authUserId = user.id
+    const email = (user.email ?? '').trim()
+
+    const existingByAuthId = await prisma.user.findUnique({ where: { auth_user_id: authUserId } })
+    if (existingByAuthId) return true
+
+    if (!email) {
+      console.error('[ensurePrismaUserForAuthUser] Missing email for auth user:', authUserId)
+      return false
+    }
+
+    const existingByEmail = await prisma.user.findUnique({ where: { email } })
+    if (existingByEmail && existingByEmail.auth_user_id !== authUserId) {
+      console.error('[ensurePrismaUserForAuthUser] Email already linked to different auth user:', {
+        email,
+        existingAuthUserId: existingByEmail.auth_user_id,
+        authUserId,
+      })
+      return false
+    }
+
+    await prisma.user.create({
+      data: {
+        id: authUserId,
+        auth_user_id: authUserId,
+        email,
+        language: 'en',
+      },
+    })
+
+    return true
+  } catch (error) {
+    console.error('[ensurePrismaUserForAuthUser] Failed to ensure user:', error)
+    return false
+  }
+}
+
 export async function revalidateCache(tags: string[]) {
   console.log(`[revalidateCache] Starting cache invalidation for tags:`, tags)
 
@@ -385,6 +424,10 @@ export async function loadDashboardLayoutAction(): Promise<Layouts | null> {
   if (!userId) {
     throw new Error('User not found')
   }
+
+  // Ensure the DB user exists (DashboardLayout has an FK to User.auth_user_id)
+  await ensurePrismaUserForAuthUser({ id: userId, email: user?.email })
+
   try {
     const dashboard = await prisma.dashboardLayout.findUnique({
       where: { userId },
@@ -421,6 +464,13 @@ export async function saveDashboardLayoutAction(layouts: DashboardLayout): Promi
   const userId = user?.id
   if (!userId || !layouts) {
     console.error('[saveDashboardLayout] Invalid input:', { userId, hasLayouts: !!layouts })
+    return
+  }
+
+  // Ensure the DB user exists (DashboardLayout has an FK to User.auth_user_id)
+  const ensured = await ensurePrismaUserForAuthUser({ id: userId, email: user?.email })
+  if (!ensured) {
+    console.error('[saveDashboardLayout] Cannot save layout - user record missing and could not be created:', userId)
     return
   }
 
